@@ -21,6 +21,9 @@ O Brand & Product System está em
 Ele e os assets oficiais em `public/brand/prisma/` são a fonte de verdade para
 qualquer alteração de produto ou identidade.
 
+A [auditoria de referências](./docs/reference-audit.md) registra as decisões de
+engenharia e licenciamento que orientam o Prisma Engine.
+
 ## Rodar localmente
 
 ```bash

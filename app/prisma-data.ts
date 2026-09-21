@@ -30,6 +30,7 @@ export type Content = {
   body: string;
   cta: string;
   imageName?: string;
+  imageData?: string;
 };
 
 export type Creation = {

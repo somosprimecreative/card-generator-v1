@@ -14,6 +14,7 @@ const carouselSchema = z.object({
     kicker: z.string().max(48),
     title: z.string().max(120),
     text: z.string().max(180),
+    cta: z.string().max(36),
   })).min(1).max(10),
 });
 
@@ -35,8 +36,8 @@ export async function POST(request: Request) {
     const { object } = await generateObject({
       model: gateway("anthropic/claude-sonnet-4.6"),
       schema: carouselSchema,
-      system: "Você é estrategista de conteúdo e redator brasileiro para o Prisma, um gerador de cards. Escreva conteúdo claro, original, útil e pronto para composição por template. Não invente fatos, estatísticas ou promessas. Evite jargão, hashtags e emojis. Cada título deve caber confortavelmente em até três linhas. Se houver múltiplas páginas, construa uma narrativa progressiva com uma conclusão ou CTA.",
-      prompt: `Crie exatamente ${slideCount} ${slideCount === 1 ? "peça" : "páginas"} em português do Brasil. Briefing: ${topic}. Contexto de marca/público: ${audience || "pessoas interessadas no tema"}. Template: ${template || "Mensagem central"}. Retorne título, subtítulo (kicker) e texto em cada item.`,
+      system: "Você é estrategista de conteúdo e redator brasileiro para o Prisma, um gerador de cards baseado em templates. Retorne conteúdo estruturado, não instruções de layout. Escreva em português do Brasil, com clareza, densidade informativa e leitura rápida. Não invente fatos, estatísticas ou promessas. Evite hashtags, emojis e frases genéricas. Título: no máximo 12 palavras. Texto: no máximo 34 palavras. CTA: no máximo 5 palavras. Para múltiplas páginas, entregue uma narrativa progressiva: capa, desenvolvimento e fechamento.",
+      prompt: `Crie exatamente ${slideCount} ${slideCount === 1 ? "peça" : "páginas"}. Briefing: ${topic}. Contexto de marca/público: ${audience || "pessoas interessadas no tema"}. Template selecionado: ${template || "Mensagem central"}. Cada item deve conter kicker, title, text e cta.`,
     });
 
     return Response.json(object);
