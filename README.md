@@ -1,6 +1,6 @@
-# Prime Creative Generator
+# Prisma · Prime Creative
 
-Ferramenta para criar cards e carrosséis com identidade visual própria, pronta para publicação em redes sociais.
+Ferramenta da Prime Creative para gerar cards e carrosséis com identidade visual própria, pronta para publicação em redes sociais.
 
 ## Recursos atuais
 
