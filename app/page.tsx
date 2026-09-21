@@ -1,5 +1,5 @@
-import { CreatorStudio } from "./CreatorStudio";
+import { PrismaApp } from "./PrismaApp";
 
 export default function Home() {
-  return <CreatorStudio />;
+  return <PrismaApp />;
 }
