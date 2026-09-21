@@ -11,11 +11,11 @@ de terceiros foi incorporado.
 
 | Repositório | Licença confirmada | Código inspecionado | Decisão para o Prisma |
 | --- | --- | --- | --- |
-| `TonyciencIA/claude-carruseles` | MIT, 2026 Open Carrusel Contributors | `slide-html.ts`, `export-slides.ts`, `carousels.ts` | Adotar o princípio de um contrato de render único e espera de fontes/imagens. Não copiar editor, chat, código, templates ou assets. |
-| `Hainrixz/open-carrusel` | MIT, 2026 Open Carrusel Contributors | renderer, dados, prompts e exportação | Referência arquitetural complementar. Rejeitar o editor livre, reorder e chat como fluxo central. |
-| `wasimjalali/swipekit` | MIT, 2026 Wasim Jalali | tipos, prompt estruturado e exportação | Adotar o princípio de conteúdo tipado por página, safe zones e pipeline linear. Não copiar layout, temas ou código. |
-| `ahoydig/carrossel-instagram` | MIT, 2026 | `SKILL.md` e referências de templates | Adotar gates de conteúdo e a regra de variedade entre páginas. Não importar paletas, templates, copy ou efeitos. |
-| `crealwork/carousel-cards` | MIT, 2026 crealwork | CSS de componentes e guia de PNG | Adotar validação de overflow, espera de fontes/imagens e exportação no tamanho final. Não copiar CSS ou layouts. |
+| [`TonyciencIA/claude-carruseles`](https://github.com/TonyciencIA/claude-carruseles) | MIT, 2026 Open Carrusel Contributors | `slide-html.ts`, `export-slides.ts`, `carousels.ts` | Adotar o princípio de um contrato de render único e espera de fontes/imagens. Não copiar editor, chat, código, templates ou assets. |
+| [`Hainrixz/open-carrusel`](https://github.com/Hainrixz/open-carrusel) | MIT, 2026 Open Carrusel Contributors | renderer, dados, prompts e exportação | Referência arquitetural complementar. Rejeitar o editor livre, reorder e chat como fluxo central. |
+| [`wasimjalali/swipekit`](https://github.com/wasimjalali/swipekit) | MIT, 2026 Wasim Jalali | tipos, prompt estruturado e exportação | Adotar o princípio de conteúdo tipado por página, safe zones e pipeline linear. Não copiar layout, temas ou código. |
+| [`ahoydig/carrossel-instagram`](https://github.com/ahoydig/carrossel-instagram) | MIT, 2026 | `SKILL.md` e referências de templates | Adotar gates de conteúdo e a regra de variedade entre páginas. Não importar paletas, templates, copy ou efeitos. |
+| [`crealwork/carousel-cards`](https://github.com/crealwork/carousel-cards) | MIT, 2026 crealwork | CSS de componentes e guia de PNG | Adotar validação de overflow, espera de fontes/imagens e exportação no tamanho final. Não copiar CSS ou layouts. |
 
 ## Decisões de incorporação
 
