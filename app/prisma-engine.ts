@@ -1,4 +1,4 @@
-import { Content, Template } from "./prisma-data";
+import { CardComposition, Content, Template } from "./prisma-data";
 
 export type RenderIssue = {
   code: "content-overflow" | "unsafe-contrast" | "missing-image";
@@ -7,6 +7,7 @@ export type RenderIssue = {
 
 export type StructuredPage = Content & {
   role: "cover" | "body" | "closing";
+  composition: CardComposition;
 };
 
 export const contentLimits = {
@@ -33,31 +34,27 @@ export function validateContent(content: Content, template: Template): RenderIss
   if (content.title.trim().length > contentLimits.title || content.body.trim().length > contentLimits.body) {
     issues.push({ code: "content-overflow", message: "O texto foi reduzido para preservar a leitura no formato escolhido." });
   }
-  if (["image", "split"].includes(template.style) && !normalized.imageName) {
+  if (template.pageBlueprint.includes("photo-caption") && !normalized.imageName) {
     issues.push({ code: "missing-image", message: "Este template funciona melhor com uma imagem, mas pode ser gerado sem ela." });
   }
   return issues;
 }
 
-const roleCopy = {
-  editorial: ["Contexto", "A ideia", "Próximo passo"],
-  steps: ["Comece por aqui", "Passo seguinte", "Coloque em prática"],
-  list: ["O essencial", "O que importa", "Para lembrar"],
-  comparison: ["Antes", "Depois", "A escolha"],
-} as const;
-
 export function composePages(content: Content, template: Template): StructuredPage[] {
   const safe = sanitizeContent(content);
-  if (template.pages !== "multiple") return [{ ...safe, role: "cover" }];
-
-  const labels = roleCopy[template.style as keyof typeof roleCopy] ?? roleCopy.editorial;
+  const blueprints = template.pages === "multiple" ? template.pageBlueprint : [template.style];
+  const labels = ["Contexto", "A ideia", "Em perspectiva", "Para guardar", "Próximo passo"];
   const bodyTitle = safe.body || safe.title;
 
-  return [
-    { ...safe, role: "cover", subtitle: safe.subtitle || labels[0], body: "" },
-    { ...safe, role: "body", subtitle: labels[1], title: bodyTitle, body: "", cta: "Continue" },
-    { ...safe, role: "closing", subtitle: labels[2], title: safe.cta || "Leve esta ideia adiante", body: safe.body, cta: safe.cta || "Saiba mais" },
-  ];
+  return blueprints.map((composition, index) => {
+    const role = index === 0 ? "cover" : index === blueprints.length - 1 ? "closing" : "body";
+    if (composition === "photo-caption") return { ...safe, role, composition, subtitle: safe.subtitle || labels[index], body: index === 0 ? safe.body : "" };
+    if (composition === "minimal-cover") return { ...safe, role, composition, subtitle: safe.subtitle || labels[index], body: "" };
+    if (composition === "minimal-copy" || composition === "dark-copy") return { ...safe, role, composition, subtitle: labels[index] || safe.subtitle, title: bodyTitle, body: index % 2 ? safe.body : "", cta: "Continuar" };
+    if (composition === "prompt") return { ...safe, role, composition, subtitle: safe.subtitle || "Uma pergunta", title: safe.title, body: "", cta: safe.cta || "Continuar" };
+    if (composition === "poster") return { ...safe, role, composition, subtitle: safe.subtitle || labels[index], title: safe.title, body: "", cta: safe.cta || "Guardar ideia" };
+    return { ...safe, role, composition, subtitle: safe.subtitle || "Próximo passo", title: safe.cta || safe.title, body: "", cta: safe.cta || "Saiba mais" };
+  });
 }
 
 export function inspectRenderedCard(node: HTMLElement): RenderIssue[] {

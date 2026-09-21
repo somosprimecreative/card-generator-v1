@@ -1,13 +1,13 @@
 "use client";
-/* eslint-disable @next/next/no-img-element -- User-selected data URLs are rendered inside the deterministic card DOM before export. */
+/* eslint-disable @next/next/no-img-element -- Data URLs and declared demo photography share the same deterministic export DOM. */
 
-import { BrandProfile, Creation, templates } from "./prisma-data";
+import { BrandProfile, CardComposition, Creation, templates } from "./prisma-data";
 import styles from "./CardRenderer.module.css";
 
 function densityFor(title: string, body: string) {
-  const weight = title.trim().length + body.trim().length * 0.32;
-  if (weight > 180) return "tight";
-  if (weight > 105) return "dense";
+  const weight = title.trim().length + body.trim().length * 0.34;
+  if (weight > 210) return "tight";
+  if (weight > 128) return "dense";
   return "regular";
 }
 
@@ -15,9 +15,12 @@ function initials(name?: string) {
   return name?.split(" ").map((word) => word[0]).join("").slice(0, 2).toUpperCase() || "P";
 }
 
+const usesImage = (composition: CardComposition) => composition === "photo-caption";
+
 export function CardRenderer({ creation, brand, page = 0, compact = false, exportMode = false }: { creation: Creation; brand?: BrandProfile; page?: number; compact?: boolean; exportMode?: boolean }) {
   const template = templates.find((item) => item.id === creation.templateId) ?? templates[0];
   const content = creation.pages[page] ?? creation.content;
+  const composition = content.composition ?? template.pageBlueprint[Math.min(page, template.pageBlueprint.length - 1)] ?? template.style;
   const colors = brand?.colors ?? ["#2650F6", "#F3E19C"];
   const density = densityFor(content.title, content.body);
   const style = {
@@ -26,40 +29,41 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
     "--brand-secondary": colors[1],
     ...(exportMode ? { width: `${creation.dimensions.width}px`, height: `${creation.dimensions.height}px`, minHeight: `${creation.dimensions.height}px` } : {}),
   } as React.CSSProperties;
-  const isImageTemplate = ["image", "split"].includes(template.style);
-  const pageCount = String(page + 1).padStart(2, "0");
+  const pageLabel = String(page + 1).padStart(2, "0");
+  const countLabel = String(creation.pages.length).padStart(2, "0");
+  const tag = content.subtitle || template.category;
 
   return <article
     data-prisma-card="true"
-    data-template={template.style}
+    data-template={composition}
     data-density={density}
-    className={`${styles.card} ${styles[template.style]} ${compact ? styles.compact : ""} ${exportMode ? styles.exportCard : ""}`}
+    className={`${styles.card} ${styles[composition]} ${compact ? styles.compact : ""} ${exportMode ? styles.exportCard : ""}`}
     style={style}
   >
-    <header className={styles.head}>
-      <span className={styles.brand}>{brand?.name ?? "Sem marca"}</span>
-      <span className={styles.page}>{pageCount}<i />{String(creation.pages.length).padStart(2, "0")}</span>
-    </header>
-
-    {isImageTemplate && <div className={styles.imageFrame}>
+    {usesImage(composition) && <div className={styles.photo}>
       {content.imageData
-        ? <img src={content.imageData} alt={content.imageName ? `Imagem: ${content.imageName}` : "Imagem selecionada"} style={{ objectPosition: content.imagePosition || "50% 50%" }}/>
-        : <div className={styles.imagePlaceholder}><b>{initials(brand?.name)}</b><span>{content.imageName || "Imagem da criação"}</span></div>}
+        ? <img src={content.imageData} crossOrigin="anonymous" alt={content.imageName ? `Imagem: ${content.imageName}` : "Imagem da criação"} style={{ objectPosition: content.imagePosition || "50% 50%" }}/>
+        : <div className={styles.photoFallback}><b>{initials(brand?.name)}</b><span>{content.imageName || "Adicione uma imagem"}</span></div>}
     </div>}
 
-    <div className={styles.copy}>
-      {template.style === "quote" && <span className={styles.quoteMark}>“</span>}
-      <p className={styles.kicker}>{content.subtitle || template.category}</p>
+    <header className={styles.header}>
+      <span className={styles.identity}>{brand?.name ?? "Sem marca"}</span>
+      <span className={styles.counter}>{pageLabel}<i />{countLabel}</span>
+    </header>
+
+    <div className={styles.content}>
+      {(composition === "photo-caption" || composition === "dark-copy") && <span className={styles.tag}>{tag}</span>}
+      {composition === "minimal-cover" && <div className={styles.profile}><b>{initials(brand?.name)}</b><span>{tag}</span></div>}
+      {composition === "minimal-copy" && <span className={styles.sectionLabel}>{tag}</span>}
+      {composition === "prompt" && <span className={styles.promptIndex}>01</span>}
+      {composition === "poster" && <span className={styles.posterKicker}>{tag}</span>}
       <h3>{content.title}</h3>
       {!compact && content.body && <p className={styles.body}>{content.body}</p>}
-      {template.style === "comparison" && <div className={styles.comparisonLine}><span>Antes</span><i /><span>Depois</span></div>}
     </div>
 
     <footer className={styles.footer}>
-      <span className={styles.cta}>{content.cta || "Saiba mais"}<b aria-hidden="true">↗</b></span>
-      {template.style === "steps" && <span className={styles.stepNumber}>{page + 1}</span>}
-      {template.style === "stat" && <span className={styles.statDot} />}
+      <span className={styles.dots}><i /><i /><i /></span>
+      <span className={styles.action}>{content.cta || "Saiba mais"}<b aria-hidden="true">↗</b></span>
     </footer>
-    <span className={styles.accent} aria-hidden="true" />
   </article>;
 }
