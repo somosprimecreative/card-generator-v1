@@ -20,7 +20,7 @@ export type Template = {
   pages: "single" | "multiple" | "both";
   description: string;
   fields: string[];
-  style: "statement" | "editorial" | "image";
+  style: "statement" | "editorial" | "image" | "quote" | "stat" | "split" | "steps" | "list" | "comparison";
 };
 
 export type Content = {
@@ -31,6 +31,7 @@ export type Content = {
   cta: string;
   imageName?: string;
   imageData?: string;
+  imagePosition?: string;
 };
 
 export type Creation = {
@@ -85,6 +86,66 @@ export const templates: Template[] = [
     description: "Imagem como protagonista, combinada a uma mensagem curta.",
     fields: ["Imagem", "Título", "Subtítulo", "CTA"],
     style: "image",
+  },
+  {
+    id: "quote",
+    name: "Citação em foco",
+    category: "Autoridade",
+    formats: ["square", "portrait", "vertical", "story"],
+    pages: "single",
+    description: "Uma frase forte com contexto e assinatura editorial.",
+    fields: ["Título", "Subtítulo", "CTA"],
+    style: "quote",
+  },
+  {
+    id: "stat",
+    name: "Dado em foco",
+    category: "Dados",
+    formats: ["square", "portrait", "vertical"],
+    pages: "single",
+    description: "Número, afirmação e prova em uma hierarquia de alto contraste.",
+    fields: ["Título", "Texto", "CTA"],
+    style: "stat",
+  },
+  {
+    id: "split",
+    name: "Imagem e argumento",
+    category: "Campanha",
+    formats: ["square", "portrait", "vertical", "story"],
+    pages: "both",
+    description: "Fotografia recortada e texto em duas zonas com leitura imediata.",
+    fields: ["Imagem", "Título", "Texto", "CTA"],
+    style: "split",
+  },
+  {
+    id: "steps",
+    name: "Guia em passos",
+    category: "Educação",
+    formats: ["square", "portrait", "vertical"],
+    pages: "multiple",
+    description: "Sequência guiada com uma decisão clara por página.",
+    fields: ["Título", "Subtítulo", "Texto", "CTA"],
+    style: "steps",
+  },
+  {
+    id: "list",
+    name: "Lista essencial",
+    category: "Educação",
+    formats: ["square", "portrait", "vertical", "story"],
+    pages: "multiple",
+    description: "Ideias ordenadas em uma estrutura limpa e escaneável.",
+    fields: ["Título", "Subtítulo", "Texto", "CTA"],
+    style: "list",
+  },
+  {
+    id: "comparison",
+    name: "Antes e depois",
+    category: "Estratégia",
+    formats: ["square", "portrait", "vertical"],
+    pages: "multiple",
+    description: "Contraste visual para tornar uma mudança ou escolha compreensível.",
+    fields: ["Título", "Subtítulo", "Texto", "CTA"],
+    style: "comparison",
   },
 ];
 

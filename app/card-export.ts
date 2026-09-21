@@ -1,7 +1,9 @@
 "use client";
 
-import { toPng } from "html-to-image";
+import { toJpeg, toPng } from "html-to-image";
 import JSZip from "jszip";
+
+export type ExportFormat = "png" | "jpg";
 
 const safeName = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "prisma";
 
@@ -11,24 +13,25 @@ async function ready(node: HTMLElement) {
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }
 
-export async function renderCardPng(node: HTMLElement) {
+export async function renderCard(node: HTMLElement, format: ExportFormat = "png") {
   await ready(node);
-  return toPng(node, { cacheBust: true, pixelRatio: 1, backgroundColor: "#0E1116" });
+  const options = { cacheBust: true, pixelRatio: 1, backgroundColor: "#0E1116", quality: 0.94 };
+  return format === "jpg" ? toJpeg(node, options) : toPng(node, options);
 }
 
-export async function downloadCard(node: HTMLElement, name: string) {
-  const dataUrl = await renderCardPng(node);
+export async function downloadCard(node: HTMLElement, name: string, format: ExportFormat = "png") {
+  const dataUrl = await renderCard(node, format);
   const anchor = document.createElement("a");
   anchor.href = dataUrl;
-  anchor.download = `${safeName(name)}.png`;
+  anchor.download = `${safeName(name)}.${format}`;
   anchor.click();
 }
 
-export async function downloadCardsZip(nodes: HTMLElement[], name: string) {
+export async function downloadCardsZip(nodes: HTMLElement[], name: string, format: ExportFormat = "png") {
   const zip = new JSZip();
   for (const [index, node] of nodes.entries()) {
-    const dataUrl = await renderCardPng(node);
-    zip.file(`${safeName(name)}-${String(index + 1).padStart(2, "0")}.png`, dataUrl.split(",")[1], { base64: true });
+    const dataUrl = await renderCard(node, format);
+    zip.file(`${safeName(name)}-${String(index + 1).padStart(2, "0")}.${format}`, dataUrl.split(",")[1], { base64: true });
   }
   const blob = await zip.generateAsync({ type: "blob" });
   const anchor = document.createElement("a");

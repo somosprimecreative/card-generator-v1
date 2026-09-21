@@ -1,11 +1,12 @@
 "use client";
 /* eslint-disable @next/next/no-img-element, jsx-a11y/label-has-associated-control, react-hooks/set-state-in-effect, react-hooks/static-components -- Official SVG assets must remain direct files; this is a stateful product shell with local view fragments. */
 
-import { ChangeEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { BrandProfile, Content, Creation, emptyContent, formats, FormatId, seedBrands, templates } from "./prisma-data";
 import { CardRenderer } from "./CardRenderer";
-import { downloadCard } from "./card-export";
+import { downloadCard, downloadCardsZip, ExportFormat } from "./card-export";
 import { composePages, inspectRenderedCard, validateContent } from "./prisma-engine";
+import { prepareImageForCard } from "./image-processing";
 
 type Screen = "home" | "creations" | "templates" | "brands" | "settings" | "generate" | "result";
 type Theme = "light" | "dark";
@@ -82,6 +83,8 @@ export function PrismaApp() {
   const [confirmDelete, setConfirmDelete] = useState<string | "bulk" | null>(null);
   const [variationOpen, setVariationOpen] = useState(false);
   const [variation, setVariation] = useState("layout");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
+  const exportNodes = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -112,13 +115,17 @@ export function PrismaApp() {
   const navigate = (next: Screen) => { setScreen(next); setSelectedIds([]); if (next === "generate") setStep(1); };
   const newGeneration = (brandId?: string | null | unknown) => { const chosenBrand = typeof brandId === "string" || brandId === null ? brandId : (brands[0]?.id ?? null); setSelectedBrand(chosenBrand); setFormat("portrait"); setTemplateId("message"); setContent(emptyContent); setSuggestedPages(null); setStep(1); setScreen("generate"); };
   const patchContent = (key: keyof Content, value: string) => { setSuggestedPages(null); setContent((old) => ({ ...old, [key]: value })); };
-  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0];
     if (!image) return;
-    if (image.size > 1_500_000) { setNotice({ tone: "error", text: "Use uma imagem de até 1,5 MB para preservar a exportação local." }); return; }
-    const reader = new FileReader();
-    reader.onload = () => { setSuggestedPages(null); setContent((old) => ({ ...old, imageName: image.name, imageData: String(reader.result) })); };
-    reader.readAsDataURL(image);
+    try {
+      const prepared = await prepareImageForCard(image);
+      setSuggestedPages(null);
+      setContent((old) => ({ ...old, imageName: prepared.name, imageData: prepared.dataUrl, imagePosition: "50% 50%" }));
+      setNotice({ tone: "success", text: "Imagem preparada para recorte e exportação nítidos." });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error ? error.message : "Não foi possível preparar esta imagem." });
+    }
   };
 
   const generate = async () => {
@@ -177,9 +184,21 @@ export function PrismaApp() {
     const issues = inspectRenderedCard(node);
     if (issues.length) { setNotice({ tone: "error", text: issues[0].message }); return; }
     try {
-      await downloadCard(node, `${activeCreation.name}-${resultPage + 1}`);
-      setNotice({ tone: "success", text: "Página baixada em PNG a partir do preview final." });
+      await downloadCard(node, `${activeCreation.name}-${resultPage + 1}`, exportFormat);
+      setNotice({ tone: "success", text: `Página baixada em ${exportFormat.toUpperCase()} a partir do preview final.` });
     } catch { setNotice({ tone: "error", text: "A exportação não foi concluída. Tente novamente." }); }
+  };
+
+  const downloadAll = async () => {
+    if (!activeCreation || activeCreation.pages.length < 2) return;
+    const nodes = exportNodes.current.filter((node): node is HTMLElement => node !== null);
+    if (nodes.length !== activeCreation.pages.length) { setNotice({ tone: "error", text: "Ainda estamos preparando as páginas para o ZIP. Tente novamente em instantes." }); return; }
+    const issues = nodes.flatMap((node) => inspectRenderedCard(node));
+    if (issues.length) { setNotice({ tone: "error", text: issues[0].message }); return; }
+    try {
+      await downloadCardsZip(nodes, activeCreation.name, exportFormat);
+      setNotice({ tone: "success", text: `${activeCreation.pages.length} páginas reunidas em um ZIP ${exportFormat.toUpperCase()}.` });
+    } catch { setNotice({ tone: "error", text: "Não foi possível criar o ZIP. Tente novamente." }); }
   };
 
   const brandFromForm = (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); const values = new FormData(event.currentTarget); const name = String(values.get("name") || "Nova marca"); const brand: BrandProfile = { id: crypto.randomUUID(), name, initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), colors: [String(values.get("primary") || "#2650F6"), String(values.get("secondary") || "#F3E19C")], fonts: String(values.get("fonts") || "Geist"), slogan: String(values.get("slogan") || ""), voice: String(values.get("voice") || ""), guidelines: String(values.get("guidelines") || ""), assets: "Aguardando upload de assets" }; setBrands((items) => [brand, ...items]); setNotice({ tone: "success", text: "Marca cadastrada e pronta para ser usada na geração." }); event.currentTarget.reset(); };
@@ -219,7 +238,24 @@ export function PrismaApp() {
   const Result = () => {
     if (!activeCreation) return <Creations />;
     const resultBrand = brands.find((brand) => brand.id === activeCreation.brandId);
-    return <Shell><SectionHead eyebrow={`${activeCreation.pages.length > 1 ? "Criação com múltiplas páginas" : "Card gerado"}`} title={activeCreation.name} action={<button className="button ghost" onClick={() => navigate("creations")}><Icon name="back"/> Criações</button>}/><div className="result-layout"><section className="result-stage"><CardRenderer creation={activeCreation} brand={resultBrand} page={resultPage}/>{activeCreation.pages.length > 1 && <div className="page-switcher">{activeCreation.pages.map((_, index) => <button key={index} aria-label={`Página ${index + 1}`} className={resultPage === index ? "active" : ""} onClick={() => setResultPage(index)}>{index + 1}</button>)}</div>}</section><aside className="result-actions"><div><p className="eyebrow">Peça pronta</p><h2>{activeCreation.pages.length === 1 ? "Seu card está pronto." : "Sua criação está pronta."}</h2><p>O template calculou a composição para {formats.find((formatItem) => formatItem.id === activeCreation.format)?.name} · {activeCreation.dimensions.width} × {activeCreation.dimensions.height}px.</p></div><button className="button blue full" onClick={download}><Icon name="download"/> Baixar página {activeCreation.pages.length > 1 ? resultPage + 1 : ""}</button><button className="button outline full" disabled title="Requer Google Drive OAuth configurado"><Icon name="arrow"/> Salvar no Google Drive</button><div className="action-list"><button onClick={() => setVariationOpen(true)}><Icon name="spark"/><span><strong>Gerar variação</strong><small>Explorar outra direção com base nesta criação.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setEditing(true); }}><Icon name="edit"/><span><strong>Editar conteúdo</strong><small>Atualize textos ou CTA; a composição será recalculada.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setStep(4); setSelectedBrand(activeCreation.brandId); setFormat(activeCreation.format); setTemplateId(activeCreation.templateId); setScreen("generate"); }}><Icon name="image"/><span><strong>Trocar imagem</strong><small>Selecione uma nova imagem e gere novamente.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setStep(2); setSelectedBrand(activeCreation.brandId); setTemplateId(activeCreation.templateId); setScreen("generate"); }}><Icon name="grid"/><span><strong>Adaptar formato</strong><small>Escolha outra proporção compatível.</small></span><Icon name="arrow"/></button><button className="danger-link" onClick={() => setConfirmDelete(activeCreation.id)}><Icon name="trash"/> Excluir definitivamente</button></div></aside></div></Shell>;
+    exportNodes.current = [];
+    return <Shell>
+      <SectionHead eyebrow={activeCreation.pages.length > 1 ? "Criação com múltiplas páginas" : "Card gerado"} title={activeCreation.name} action={<button className="button ghost" onClick={() => navigate("creations")}><Icon name="back"/> Criações</button>}/>
+      <div className="result-layout">
+        <section className="result-stage">
+          <CardRenderer creation={activeCreation} brand={resultBrand} page={resultPage}/>
+          {activeCreation.pages.length > 1 && <div className="page-switcher">{activeCreation.pages.map((_, index) => <button key={index} aria-label={`Página ${index + 1}`} className={resultPage === index ? "active" : ""} onClick={() => setResultPage(index)}>{index + 1}</button>)}</div>}
+        </section>
+        <aside className="result-actions">
+          <div><p className="eyebrow">Peça pronta</p><h2>{activeCreation.pages.length === 1 ? "Seu card está pronto." : "Sua criação está pronta."}</h2><p>O template calculou a composição para {formats.find((formatItem) => formatItem.id === activeCreation.format)?.name} · {activeCreation.dimensions.width} × {activeCreation.dimensions.height}px.</p></div>
+          <div className="export-controls" aria-label="Formato de exportação"><span>Formato</span><button className={exportFormat === "png" ? "selected" : ""} onClick={() => setExportFormat("png")}>PNG</button><button className={exportFormat === "jpg" ? "selected" : ""} onClick={() => setExportFormat("jpg")}>JPG</button></div>
+          <button className="button blue full" onClick={download}><Icon name="download"/> Baixar página {activeCreation.pages.length > 1 ? resultPage + 1 : ""}</button>
+          {activeCreation.pages.length > 1 && <button className="button butter full" onClick={downloadAll}><Icon name="layers"/> Baixar todas em ZIP</button>}
+          <div className="action-list"><button onClick={() => setVariationOpen(true)}><Icon name="spark"/><span><strong>Gerar variação</strong><small>Explorar outra direção com base nesta criação.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setEditing(true); }}><Icon name="edit"/><span><strong>Editar conteúdo</strong><small>Atualize textos ou CTA; a composição será recalculada.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setStep(4); setSelectedBrand(activeCreation.brandId); setFormat(activeCreation.format); setTemplateId(activeCreation.templateId); setScreen("generate"); }}><Icon name="image"/><span><strong>Trocar imagem</strong><small>Selecione uma nova imagem e gere novamente.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setStep(2); setSelectedBrand(activeCreation.brandId); setTemplateId(activeCreation.templateId); setScreen("generate"); }}><Icon name="grid"/><span><strong>Adaptar formato</strong><small>Escolha outra proporção compatível.</small></span><Icon name="arrow"/></button><button className="danger-link" onClick={() => setConfirmDelete(activeCreation.id)}><Icon name="trash"/> Excluir definitivamente</button></div>
+        </aside>
+      </div>
+      {activeCreation.pages.length > 1 && <div className="export-staging" aria-hidden="true">{activeCreation.pages.map((_, index) => <div key={index} ref={(node) => { exportNodes.current[index] = node?.querySelector<HTMLElement>("[data-prisma-card='true']") ?? null; }}><CardRenderer creation={activeCreation} brand={resultBrand} page={index} exportMode /></div>)}</div>}
+    </Shell>;
   };
 
   const Modal = () => (editing && activeCreation) ? <div className="modal-backdrop"><section className="modal"><button className="modal-close" aria-label="Fechar" onClick={() => setEditing(false)}><Icon name="close"/></button><p className="eyebrow">Editar conteúdo</p><h2>Atualize o que a criação comunica.</h2><p>O Prisma mantém o template e recalcula a composição. Não há movimentação manual de elementos.</p><div className="content-fields"><label>Título<input value={content.title} onChange={(event) => patchContent("title", event.target.value)}/></label><label>Subtítulo<input value={content.subtitle} onChange={(event) => patchContent("subtitle", event.target.value)}/></label><label className="wide">Texto<textarea value={content.body} onChange={(event) => patchContent("body", event.target.value)}/></label><label>CTA<input value={content.cta} onChange={(event) => patchContent("cta", event.target.value)}/></label><label>Imagem<input type="file" accept="image/*" onChange={handleImageUpload}/></label></div><div className="modal-actions"><button className="button ghost" onClick={() => setEditing(false)}>Cancelar</button><button className="button butter" onClick={updateCreation}><Icon name="spark"/> Atualizar card</button></div></section></div> : null;
