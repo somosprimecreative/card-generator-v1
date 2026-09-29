@@ -1,10 +1,10 @@
-# Catálogo de referência visual para templates Prisma
+# Catálogo de referência visual para templates Pixel
 
 ## Escopo e método
 
 Este catálogo registra a análise visual do arquivo de referência `Templates CarrosseIA.zip`, inspecionado integralmente em 21 de setembro de 2026. O ZIP contém 49 imagens JPEG, todas em 1080 × 1350 px (4:5), além de arquivos de metadados do macOS.
 
-As imagens foram usadas somente para estudar hierarquia, ritmo, recorte, contraste e sequência editorial. Nenhuma imagem, marca, arquivo, código ou asset do ZIP foi copiado para este repositório ou para o produto Prisma.
+As imagens foram usadas somente para estudar hierarquia, ritmo, recorte, contraste e sequência editorial. Nenhuma imagem, marca, arquivo, código ou asset do ZIP foi copiado para este repositório ou para o produto Pixel.
 
 ## Constatações recorrentes
 
@@ -17,7 +17,7 @@ As imagens foram usadas somente para estudar hierarquia, ritmo, recorte, contras
 
 ## Catálogo observável do ZIP
 
-| Arquivos de referência | Estrutura observada | Papel na sequência | Template Prisma equivalente |
+| Arquivos de referência | Estrutura observada | Papel na sequência | Template Pixel equivalente |
 | --- | --- | --- | --- |
 | `Unknown.jpeg`–`Unknown-3.jpeg` | Fundo claro, texto editorial, avatar/identificação compacta, paginação mínima | Capa e páginas de leitura | Editorial mínimo |
 | `Unknown-4.jpeg`–`Unknown-10.jpeg` | Foto escura, páginas pretas de contexto/pergunta e pôsteres cromáticos | Narrativa de contraste | Narrativa noturna |
@@ -48,4 +48,4 @@ Cada item abaixo tem um renderer próprio e, quando é sequência, um `pageBluep
 2. Composição pertence ao template e à página; não existem controles de arrastar, camadas ou posição manual.
 3. Textos longos recebem redução de escala por densidade e validação de limites antes da geração.
 4. Fotografias usam `object-fit: cover`, `object-position` editável e painel/overlay de contraste para o layout fotográfico.
-5. O resultado do card usa a paleta da marca escolhida; a paleta Prisma é reservada à interface do produto.
+5. O resultado do card usa a paleta da marca escolhida; a paleta Pixel é reservada à interface do produto.

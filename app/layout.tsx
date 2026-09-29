@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Prisma · Prime Creative",
+  title: "Pixel · Prime Creative",
   description: "Crie cards e carrosséis organizados com a identidade da sua marca.",
-  icons: { icon: "/brand/prisma/app-icon/app-icon-blue.svg", shortcut: "/brand/prisma/app-icon/app-icon-blue.svg" },
-  openGraph: { title: "Prisma · Prime Creative", description: "Crie cards e carrosséis organizados com a identidade da sua marca.", siteName: "Prisma · Prime Creative" },
-  twitter: { card: "summary", title: "Prisma · Prime Creative", description: "Crie cards e carrosséis organizados com a identidade da sua marca." },
+  icons: { icon: "/brand/pixel/app-icon/app-icon-dark-ice.svg", shortcut: "/brand/pixel/app-icon/app-icon-dark-ice.svg" },
+  openGraph: { title: "Pixel · Prime Creative", description: "Crie cards e carrosséis organizados com a identidade da sua marca.", siteName: "Pixel · Prime Creative" },
+  twitter: { card: "summary", title: "Pixel · Prime Creative", description: "Crie cards e carrosséis organizados com a identidade da sua marca." },
 };
 
 export default function RootLayout({

@@ -1,5 +1,5 @@
-import { PrismaApp } from "./PrismaApp";
+import { PixelApp } from "./PixelApp";
 
 export default function Home() {
-  return <PrismaApp />;
+  return <PixelApp />;
 }

@@ -1,15 +1,15 @@
-# Auditoria de referências externas — Prisma Engine
+# Auditoria de referências externas — Pixel Engine
 
 Data da auditoria: 21 de setembro de 2026.
 
 Esta auditoria serve para orientar decisões de engenharia. O Brand & Product
-System do Prisma continua sendo a fonte de verdade de produto, interface e
+System do Pixel continua sendo a fonte de verdade de produto, interface e
 identidade. Nenhum logotipo, template, copy, screenshot, imagem ou interface
 de terceiros foi incorporado.
 
 ## Repositórios inspecionados
 
-| Repositório | Licença confirmada | Código inspecionado | Decisão para o Prisma |
+| Repositório | Licença confirmada | Código inspecionado | Decisão para o Pixel |
 | --- | --- | --- | --- |
 | [`TonyciencIA/claude-carruseles`](https://github.com/TonyciencIA/claude-carruseles) | MIT, 2026 Open Carrusel Contributors | `slide-html.ts`, `export-slides.ts`, `carousels.ts` | Adotar o princípio de um contrato de render único e espera de fontes/imagens. Não copiar editor, chat, código, templates ou assets. |
 | [`Hainrixz/open-carrusel`](https://github.com/Hainrixz/open-carrusel) | MIT, 2026 Open Carrusel Contributors | renderer, dados, prompts e exportação | Referência arquitetural complementar. Rejeitar o editor livre, reorder e chat como fluxo central. |
@@ -19,7 +19,7 @@ de terceiros foi incorporado.
 
 ## Decisões de incorporação
 
-O Prisma Engine é único e segue:
+O Pixel Engine é único e segue:
 
 ```text
 briefing / texto / imagem
@@ -32,11 +32,11 @@ briefing / texto / imagem
 
 O renderer é deliberadamente controlado por template. Ele não aceita HTML ou
 CSS gerado pelo usuário/IA, nem drag-and-drop, layers, handles ou canvas livre.
-Isso preserva o escopo oficial do Prisma.
+Isso preserva o escopo oficial do Pixel.
 
 ## Implementação atual
 
-- `app/prisma-engine.ts`: normalização de conteúdo, composição de páginas e
+- `app/pixel-engine.ts`: normalização de conteúdo, composição de páginas e
   validação de excesso de conteúdo.
 - `app/CardRenderer.tsx`: DOM determinístico, compartilhado por preview,
   miniaturas e exportação.
@@ -50,4 +50,4 @@ e PNG no mesmo DOM sem exigir Chromium no runtime Vercel. Para exportação
 assíncrona server-side em escala, o próximo passo é uma função de fila com
 Chromium compatível com Vercel, validação dos bytes finais e storage de saída.
 Essa mudança não deve criar um renderer paralelo: deve consumir o mesmo contrato
-de página e tokens do Prisma Engine.
+de página e tokens do Pixel Engine.

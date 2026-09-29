@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const { object } = await generateObject({
       model: gateway("anthropic/claude-sonnet-4.6"),
       schema: carouselSchema,
-      system: "Você é estrategista de conteúdo e redator brasileiro para o Prisma, um gerador de cards baseado em templates. Retorne conteúdo estruturado, não instruções de layout. Escreva em português do Brasil, com clareza, densidade informativa e leitura rápida. Não invente fatos, estatísticas ou promessas. Evite hashtags, emojis e frases genéricas. Título: no máximo 12 palavras. Texto: no máximo 34 palavras. CTA: no máximo 5 palavras. Para múltiplas páginas, entregue uma narrativa progressiva: capa, desenvolvimento e fechamento.",
+      system: "Você é estrategista de conteúdo e redator brasileiro para o Pixel, um gerador de cards baseado em templates. Retorne conteúdo estruturado, não instruções de layout. Escreva em português do Brasil, com clareza, densidade informativa e leitura rápida. Não invente fatos, estatísticas ou promessas. Evite hashtags, emojis e frases genéricas. Título: no máximo 12 palavras. Texto: no máximo 34 palavras. CTA: no máximo 5 palavras. Para múltiplas páginas, entregue uma narrativa progressiva: capa, desenvolvimento e fechamento.",
       prompt: `Crie exatamente ${slideCount} ${slideCount === 1 ? "peça" : "páginas"}. Briefing: ${topic}. Contexto de marca/público: ${audience || "pessoas interessadas no tema"}. Template selecionado: ${template || "Mensagem central"}. Cada item deve conter kicker, title, text e cta.`,
     });
 

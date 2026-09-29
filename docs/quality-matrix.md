@@ -1,4 +1,4 @@
-# Prisma · matriz de qualidade do engine
+# Pixel · matriz de qualidade do engine
 
 Esta matriz orienta a evolução do engine antes de integrações, autenticação ou persistência compartilhada. O foco é a peça pronta: legibilidade, hierarquia, variedade e exportação.
 
@@ -10,7 +10,7 @@ Esta matriz orienta a evolução do engine antes de integrações, autenticaçã
 | Título longo | 80–104 caracteres | redução tipográfica sem corte, colisão ou perda de hierarquia |
 | Corpo denso | até 420 caracteres | conteúdo distribuído em sequência quando o template for multipágina |
 | Marca quente | paleta terrosa e contraste reduzido | cor da marca sem comprometer legibilidade |
-| Marca fria | azul de alto contraste | cor aplicada sem transformar a peça na UI do Prisma |
+| Marca fria | azul de alto contraste | cor aplicada sem transformar a peça na UI do Pixel |
 | Fotografia horizontal | crop em 1:1, 4:5 e 9:16 | foco preservado com `object-fit: cover` e recorte intencional |
 | Fotografia vertical | imagem em foco e imagem/argumento | assunto reconhecível e texto separado da imagem |
 | Carrossel | capa, desenvolvimento e fechamento | páginas relacionadas, mas não repetidas visualmente |

@@ -8,12 +8,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## Prisma: fonte de verdade do produto
+## Pixel: fonte de verdade do produto
 
 Antes de realizar qualquer alteração de UI, UX, identidade, navegação,
-componentes ou comportamento do Prisma, consulte
-`/docs/prisma-brand-product-system.md`.
+componentes ou comportamento do Pixel, consulte
+`/docs/pixel-brand-product-system.md`.
 
 Este documento é a fonte de verdade do Brand & Product System. Os assets em
-`/public/brand/prisma/` também são oficiais: use-os diretamente e nunca os
+`/public/brand/pixel/` também são oficiais: use-os diretamente e nunca os
 reconstrua, redesenhe ou altere via CSS.

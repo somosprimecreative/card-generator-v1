@@ -1,6 +1,6 @@
-# Prisma · Prime Creative
+# Pixel · Prime Creative
 
-Prisma é um produto de geração criativa: transforma contexto de marca,
+Pixel é um produto de geração criativa: transforma contexto de marca,
 formato, template e conteúdo em uma criação pronta. Não é um editor gráfico
 livre. Um card individual e um carrossel são a mesma entidade, com uma ou mais
 páginas.
@@ -17,12 +17,12 @@ páginas.
 - **Configurações**: tema, retenção e o ponto de integração do Google Drive.
 
 O Brand & Product System está em
-[`docs/prisma-brand-product-system.md`](./docs/prisma-brand-product-system.md).
-Ele e os assets oficiais em `public/brand/prisma/` são a fonte de verdade para
+[`docs/pixel-brand-product-system.md`](./docs/pixel-brand-product-system.md).
+Ele e os assets oficiais em `public/brand/pixel/` são a fonte de verdade para
 qualquer alteração de produto ou identidade.
 
 A [auditoria de referências](./docs/reference-audit.md) registra as decisões de
-engenharia e licenciamento que orientam o Prisma Engine.
+engenharia e licenciamento que orientam o Pixel Engine.
 
 ## Rodar localmente
 

@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- Data URLs and declared demo photography share the same deterministic export DOM. */
 
-import { BrandProfile, CardComposition, Creation, templates } from "./prisma-data";
+import { BrandProfile, CardComposition, Creation, templates } from "./pixel-data";
 import styles from "./CardRenderer.module.css";
 
 function densityFor(title: string, body: string) {
@@ -21,7 +21,7 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
   const template = templates.find((item) => item.id === creation.templateId) ?? templates[0];
   const content = creation.pages[page] ?? creation.content;
   const composition = content.composition ?? template.pageBlueprint[Math.min(page, template.pageBlueprint.length - 1)] ?? template.style;
-  const colors = brand?.colors ?? ["#2650F6", "#F3E19C"];
+  const colors = brand?.colors ?? ["#F04B3E", "#A9DCE8"];
   const density = densityFor(content.title, content.body);
   const style = {
     aspectRatio: `${creation.dimensions.width} / ${creation.dimensions.height}`,
@@ -34,7 +34,7 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
   const tag = content.subtitle || template.category;
 
   return <article
-    data-prisma-card="true"
+    data-pixel-card="true"
     data-template={composition}
     data-density={density}
     className={`${styles.card} ${styles[composition]} ${compact ? styles.compact : ""} ${exportMode ? styles.exportCard : ""}`}

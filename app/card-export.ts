@@ -5,7 +5,7 @@ import JSZip from "jszip";
 
 export type ExportFormat = "png" | "jpg";
 
-const safeName = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "prisma";
+const safeName = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "pixel";
 
 async function ready(node: HTMLElement) {
   await document.fonts?.ready;
@@ -15,7 +15,7 @@ async function ready(node: HTMLElement) {
 
 export async function renderCard(node: HTMLElement, format: ExportFormat = "png") {
   await ready(node);
-  const options = { cacheBust: true, pixelRatio: 1, backgroundColor: "#0E1116", quality: 0.94 };
+  const options = { cacheBust: true, pixelRatio: 1, backgroundColor: "#121212", quality: 0.94 };
   return format === "jpg" ? toJpeg(node, options) : toPng(node, options);
 }
 
