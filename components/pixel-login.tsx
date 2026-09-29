@@ -4,6 +4,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { loginAction } from "@/app/actions/auth";
 import type { AuthFailureCode } from "@/lib/auth/types";
 
@@ -19,11 +20,13 @@ const messages: Partial<Record<AuthFailureCode, string>> = {
 };
 
 function ThemeIcon({ dark }: { dark: boolean }) {
-  return <svg className="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{dark ? <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></> : <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>}</svg>;
+  const Component = dark ? Sun : Moon;
+  return <Component className="icon" size={16} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 function VisibilityIcon({ visible }: { visible: boolean }) {
-  return <svg className="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{visible ? <><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></> : <><path d="m3 3 18 18"/><path d="M10.6 6.1A10.8 10.8 0 0 1 12 6c6.1 0 9.5 6 9.5 6a17.8 17.8 0 0 1-3.1 3.8M6.2 6.2A17.8 17.8 0 0 0 2.5 12s3.4 6 9.5 6c1.5 0 2.8-.3 4-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></>}</svg>;
+  const Component = visible ? Eye : EyeOff;
+  return <Component className="icon" size={16} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 export function PixelLogin({ initialError }: { initialError?: AuthFailureCode }) {
