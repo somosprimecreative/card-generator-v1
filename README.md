@@ -16,6 +16,16 @@ páginas.
 - **Marcas**: contexto visual e verbal reutilizável para a geração.
 - **Configurações**: tema, retenção e o ponto de integração do Google Drive.
 
+## Acesso e tema
+
+Pixel reutiliza a sessão SSR e os membros ativos do mesmo Supabase do Órbita. Não cria banco, tabelas, migrations ou credenciais paralelas. Para habilitar o acesso real, configure somente os nomes abaixo com os valores do ambiente Prime compartilhado:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Sem esse ambiente, o login mostra que a configuração está ausente e não cria uma sessão simulada. O tema usa a mesma estratégia estrutural do Órbita (`next-themes`), persiste antes/depois do login e mantém os tokens próprios do Pixel. Detalhes em [`docs/prime-product-foundations.md`](./docs/prime-product-foundations.md).
+
 O Brand & Product System está em
 [`docs/pixel-brand-product-system.md`](./docs/pixel-brand-product-system.md).
 Ele e os assets oficiais em `public/brand/pixel/` são a fonte de verdade para
@@ -44,7 +54,7 @@ framework é detectado automaticamente como Next.js.
 
 ## Limites desta base
 
-Autenticação, persistência compartilhada, storage de arquivos, Google Drive
-OAuth e limpeza programada ainda dependem de serviços e credenciais externos.
-Enquanto eles não forem configurados, as criações e a retenção funcionam no
-armazenamento local do navegador, por dispositivo.
+Persistência compartilhada de criações, storage de arquivos, Google Drive OAuth
+e limpeza programada ainda dependem de serviços e credenciais externos. Enquanto
+eles não forem configurados, as criações e a retenção funcionam no armazenamento
+local do navegador, por dispositivo.

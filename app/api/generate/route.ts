@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { gateway } from "@ai-sdk/gateway";
 import { z } from "zod";
+import { getAuthContext } from "@/services/auth.service";
 
 const requestSchema = z.object({
   topic: z.string().trim().min(8).max(1_500),
@@ -19,6 +20,8 @@ const carouselSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = await getAuthContext();
+  if (auth.kind !== "active") return Response.json({ error: "Sua sessão não permite esta ação." }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return Response.json({ error: "Informe um tema com pelo menos 8 caracteres." }, { status: 400 });

@@ -36,6 +36,18 @@ Os 30 SVGs oficiais são preservados em famílias sem modificação:
 
 Escolha a variante oficial adequada para contraste. Se uma aplicação exigir uma variante inexistente, solicite o asset; não crie uma nova versão da marca.
 
+## Prime Product Foundations
+
+Pixel compartilha fundamentos de produto com o Órbita sem diluir sua identidade. A estrutura comum cobre escala tipográfica Geist, espaços, raio, superfícies, botões, campos, estados de foco, menus de conta, modais, toasts, estados vazios, loading e responsividade. A implementação mantém Vermilion e Ice Blue fixos como tokens de Pixel; não importa Blue + Butter nem ativos do Prisma.
+
+O seletor de tema segue a estratégia do Órbita: `next-themes`, com `data-theme`, preferência do sistema como padrão e persistência local automática. O script inicial do provider aplica o tema antes da hidratação, evitando flash entre login, área autenticada, atualização e logout. Ainda não há preferência de aparência no perfil compartilhado; quando existir, ela poderá sincronizar sobre a mesma estratégia sem trocar os tokens de Pixel.
+
+## Acesso compartilhado Prime
+
+O Pixel usa o mesmo Supabase e a mesma sessão SSR do Órbita. Não há banco, tabela, migration, credencial ou login paralelo. A sessão é renovada por `proxy.ts`; o acesso requer um usuário Supabase vinculado a um `team_member` **ativo** no workspace Prime. Convites pendentes, pessoas inativas/removidas, vínculos ausentes e workspace ausente são bloqueados e a sessão é encerrada após uma tentativa de login não autorizada.
+
+Variáveis esperadas (somente nomes): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY`. O Pixel não presume uma permissão `pixel.*`, porque ela ainda não existe no catálogo compartilhado de permissões do Órbita. O modelo Prime deseja `product_access`, mas essa entidade também não está no schema auditado. Portanto, a autorização atual respeita o controle de acesso real já disponível — membro ativo no workspace — sem fingir SSO ou inventar uma regra de perfil. Uma migration compartilhada com RLS deve adicionar o acesso a produto antes de restringir o Pixel por perfil.
+
 ## Limites técnicos atuais
 
-O histórico e a retenção rodam no armazenamento local do navegador. Google Drive, autenticação, persistência compartilhada e exportação server-side dependem de credenciais e infraestrutura externas; não fazem parte desta base local.
+O histórico e a retenção continuam no armazenamento local do navegador por enquanto. Google Drive, persistência compartilhada de criações e exportação server-side ainda dependem de infraestrutura adicional. A autenticação só funciona após as variáveis do Supabase compartilhado estarem configuradas neste ambiente; até isso ocorrer, a tela informa a configuração ausente e não simula uma sessão.

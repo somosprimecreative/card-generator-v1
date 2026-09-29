@@ -2,6 +2,9 @@
 /* eslint-disable @next/next/no-img-element, jsx-a11y/label-has-associated-control, react-hooks/set-state-in-effect, react-hooks/static-components -- Official SVG assets must remain direct files; this is a stateful product shell with local view fragments. */
 
 import { ChangeEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
+import { logoutAction } from "@/app/actions/auth";
+import type { ActiveAuthMember } from "@/lib/auth/types";
 import { BrandProfile, Content, Creation, emptyContent, formats, FormatId, seedBrands, templatePreviewCreation, templates } from "./pixel-data";
 import { CardRenderer } from "./CardRenderer";
 import { downloadCard, downloadCardsZip, ExportFormat } from "./card-export";
@@ -9,7 +12,6 @@ import { composePages, inspectRenderedCard, validateContent } from "./pixel-engi
 import { prepareImageForCard } from "./image-processing";
 
 type Screen = "home" | "creations" | "templates" | "brands" | "settings" | "generate" | "result";
-type Theme = "light" | "dark";
 type Retention = "15" | "30" | "90" | "custom";
 type Notice = { tone: "success" | "error" | "info"; text: string } | null;
 
@@ -59,9 +61,17 @@ function BrandAvatar({ brand, large = false }: { brand: BrandProfile; large?: bo
   return <span className={`brand-avatar ${large ? "large" : ""}`} style={{ background: brand.colors[0], color: brand.colors[1] }}>{brand.initials}</span>;
 }
 
-export function PixelApp() {
+function AccountMenu({ member, compact = false }: { member: ActiveAuthMember; compact?: boolean }) {
+  const initial = member.name.trim().charAt(0).toUpperCase() || "P";
+  if (compact) return <form action={logoutAction}><button className="mobile-logout" type="submit" aria-label="Sair da conta">Sair</button></form>;
+  return <details className="account-menu"><summary><span className="account-avatar" aria-hidden="true">{initial}</span><span className="account-summary"><strong>{member.name}</strong><small>{member.workspaceName}</small></span><Icon name="chevron" size={15}/></summary><div className="account-dropdown"><p><strong>{member.name}</strong><span>{member.email}</span></p><span className="account-workspace">Organização: {member.workspaceName}</span><form action={logoutAction}><button className="account-logout" type="submit">Sair</button></form></div></details>;
+}
+
+export function PixelApp({ member }: { member: ActiveAuthMember }) {
   const [screen, setScreen] = useState<Screen>("home");
-  const [theme, setTheme] = useState<Theme>("light");
+  const { resolvedTheme, setTheme } = useTheme();
+  const [themeReady, setThemeReady] = useState(false);
+  const theme = themeReady && resolvedTheme === "dark" ? "dark" : "light";
   const [retention, setRetention] = useState<Retention>("30");
   const [hydrated, setHydrated] = useState(false);
   const [customDays, setCustomDays] = useState(45);
@@ -87,23 +97,24 @@ export function PixelApp() {
   const exportNodes = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setThemeReady(true));
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as { theme?: Theme; retention?: Retention; customDays?: number; brands?: BrandProfile[]; creations?: Creation[] };
-        setTheme(parsed.theme ?? "light"); setRetention(parsed.retention ?? "30"); setCustomDays(parsed.customDays ?? 45);
+        const parsed = JSON.parse(saved) as { retention?: Retention; customDays?: number; brands?: BrandProfile[]; creations?: Creation[] };
+        setRetention(parsed.retention ?? "30"); setCustomDays(parsed.customDays ?? 45);
         setBrands(parsed.brands?.length ? parsed.brands : seedBrands);
         setCreations((parsed.creations ?? []).filter((item) => new Date(item.expiresAt) > new Date()));
       } catch { window.localStorage.removeItem(STORAGE_KEY); }
     }
     setHydrated(true);
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
     if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ theme, retention, customDays, brands, creations }));
-  }, [hydrated, theme, retention, customDays, brands, creations]);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ retention, customDays, brands, creations }));
+  }, [hydrated, retention, customDays, brands, creations]);
 
   useEffect(() => { if (notice) { const timeout = window.setTimeout(() => setNotice(null), 4200); return () => window.clearTimeout(timeout); } }, [notice]);
 
@@ -211,8 +222,8 @@ export function PixelApp() {
     <aside className="sidebar"><button className="brand-lockup" onClick={() => navigate("home")} aria-label="Ir para início"><img src={`/brand/pixel/signature/lockup-wide-${theme === "dark" ? "light" : "ink"}.svg`} alt="Pixel, um produto Prime Creative" /></button>
       <button className="generate-nav" onClick={newGeneration}><Icon name="plus"/> Gerar</button>
       <nav>{navItems.map((item) => <button key={item.id} className={screen === item.id ? "nav-active" : ""} onClick={() => navigate(item.id)}><Icon name={item.icon}/><span>{item.label}</span></button>)}</nav>
-      <div className="sidebar-bottom"><button className="theme-button" onClick={() => setTheme((value) => value === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/><span>{theme === "light" ? "Tema noturno" : "Tema claro"}</span></button><p>Criações ficam disponíveis por {retention === "custom" ? `${customDays} dias` : `${retention} dias`}.</p></div>
-    </aside><section className="main-panel"><header className="mobile-top"><button className="brand-lockup" onClick={() => navigate("home")}><img src={`/brand/pixel/wordmark/wordmark-${theme === "dark" ? "light" : "ink"}.svg`} alt="Pixel" /></button><button className="icon-button" aria-label="Alternar tema" onClick={() => setTheme((value) => value === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/></button></header>{children}</section>{notice && <div className={`toast ${notice.tone}`}><Icon name={notice.tone === "success" ? "check" : "spark"}/>{notice.text}</div>}</main>;
+      <div className="sidebar-bottom"><button className="theme-button" onClick={() => setTheme(theme === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/><span>{theme === "light" ? "Tema noturno" : "Tema claro"}</span></button><p>Criações ficam disponíveis por {retention === "custom" ? `${customDays} dias` : `${retention} dias`}.</p></div>
+    </aside><section className="main-panel"><header className="desktop-top"><div><span>Produto ativo</span><strong>Pixel</strong><small>{member.workspaceName}</small></div><div className="desktop-actions"><button className="icon-button" aria-label="Alternar tema" onClick={() => setTheme(theme === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/></button><AccountMenu member={member}/></div></header><header className="mobile-top"><button className="brand-lockup" onClick={() => navigate("home")}><img src={`/brand/pixel/wordmark/wordmark-${theme === "dark" ? "light" : "ink"}.svg`} alt="Pixel" /></button><div className="mobile-actions"><button className="icon-button" aria-label="Alternar tema" onClick={() => setTheme(theme === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/></button><AccountMenu member={member} compact/></div></header>{children}</section>{notice && <div className={`toast ${notice.tone}`}><Icon name={notice.tone === "success" ? "check" : "spark"}/>{notice.text}</div>}</main>;
 
   const SectionHead = ({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: ReactNode }) => <header className="section-head"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1></div>{action}</header>;
 
