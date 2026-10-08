@@ -126,7 +126,7 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
     if (!content.title.trim()) { setNotice({ tone: "error", text: validation[0]?.message ?? "Inclua um título antes de gerar." }); return; }
     setGenerating(true);
     await new Promise((resolve) => window.setTimeout(resolve, 1100));
-    const pages = suggestedPages?.length && currentTemplate.pages === "multiple" ? suggestedPages : composePages(content, currentTemplate);
+    const pages = composePages(content, currentTemplate, suggestedPages ?? undefined);
     const creation: Creation = { id: crypto.randomUUID(), name: content.title, brandId: selectedBrand, templateId, format, dimensions: dimensionsFor(format, customSize), content, pages, createdAt: now(), expiresAt: expiry(retention, customDays) };
     setCreations((items) => [creation, ...items]); setSelectedCreation(creation.id); setResultPage(0); setGenerating(false); setScreen("result");
     const softWarning = validation.find((item) => item.code === "content-overflow");
@@ -150,7 +150,10 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
 
   const updateCreation = () => {
     if (!activeCreation) return;
-    const pages = activeCreation.pages.map((item, index) => index === 0 ? content : item);
+    const template = templates.find((item) => item.id === activeCreation.templateId) ?? currentTemplate;
+    const pages = template.family === "editorial"
+      ? composePages(content, template)
+      : activeCreation.pages.map((item, index) => index === 0 ? content : item);
     setCreations((items) => items.map((item) => item.id === activeCreation.id ? { ...item, name: content.title, content, pages } : item));
     setEditing(false); setNotice({ tone: "success", text: "Card atualizado pelo template selecionado." });
   };
