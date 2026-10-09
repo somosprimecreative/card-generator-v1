@@ -29,6 +29,7 @@
 .dots { display: inline-flex; gap: clamp(4px, .7cqw, 8px); }
 .dots i { width: clamp(4px, .7cqw, 9px); aspect-ratio: 1; border: 1px solid currentColor; border-radius: 50%; opacity: .48; }
 .dots i:first-child { background: currentColor; opacity: 1; }
+.dots i.dotActive { background: currentColor; opacity: 1; }
 .action { display: inline-flex; align-items: center; gap: .55em; max-width: 68%; text-align: right; }
 .action b { font-size: 1.18em; font-weight: 500; }
 .profile, .tag, .sectionLabel, .posterKicker, .promptIndex { font-size: clamp(9px, 2.05cqw, 22px); font-weight: 600; letter-spacing: -.03em; }
@@ -91,28 +92,83 @@
 .closing .dots { color: var(--ink); }
 
 /* Brand Editorial: six page purposes, each with its own composition. */
-.editorial-cover { background: #f1eee5; }
-.editorial-cover::before { content: ""; position: absolute; top: 0; right: 0; width: 17%; height: 100%; background: var(--brand-secondary); opacity: .86; }
-.editorial-cover .editorialContent { align-content: end; max-width: 87%; }
-.editorial-cover .editorialContent h3 { max-width: 100%; font-size: clamp(37px, 12cqw, 150px); line-height: .82; }
+.editorialChrome { color: inherit; }
+.editorialHandle { max-width: 74%; overflow: hidden; color: inherit; font-size: 1.04em; font-weight: 720; letter-spacing: -.055em; text-overflow: ellipsis; white-space: nowrap; }
+.editorialBadge { flex: 0 0 auto; padding: .46em .82em; border-radius: 999px; background: var(--brand-primary); color: #fff; font-size: .88em; font-weight: 760; letter-spacing: -.045em; line-height: 1; text-transform: uppercase; }
+.editorialFooter { position: relative; }
+.editorialPageCount { font-variant-numeric: tabular-nums; opacity: .72; }
+.editorialFooter .dots { position: absolute; left: 50%; transform: translateX(-50%); }
+.editorialFooter .dots i:first-child:not(.dotActive) { background: transparent; opacity: .48; }
+
+/* The editorial cover reserves the lower-left reading zone. The local scrim is
+   deliberately absent from the portrait's upper/right side, so a face and gaze
+   remain the visual anchor instead of becoming a dark background for UI. */
+.editorial-cover { color: #fff; background: #141619; }
+.editorial-cover .photo::after { background: linear-gradient(90deg, rgba(3, 5, 8, .76) 0%, rgba(3, 5, 8, .56) 42%, rgba(3, 5, 8, .08) 67%, transparent 78%), linear-gradient(0deg, rgba(3, 5, 8, .82) 0%, rgba(3, 5, 8, .32) 34%, transparent 58%); }
+.editorial-cover .header { color: rgba(255,255,255,.86); }
+.editorial-cover .editorialBadge, .editorial-cover .editorialSeal, .editorial-cover .editorialCoverCta { display: none; }
+.editorial-cover .editorialContent { align-content: end; width: min(60%, 700px); max-width: 60%; margin-top: auto; padding-top: 12%; }
+.editorial-cover .editorialContent h3 { max-width: 100%; overflow-wrap: normal; hyphens: none; font-family: Georgia, "Times New Roman", serif; font-size: clamp(26px, 9.2cqw, 110px); font-weight: 400; line-height: .91; letter-spacing: -.048em; text-wrap: pretty; }
+.headline { display: block; }
+.headlineLine { display: block; white-space: nowrap; }
+.headline[data-lines="3"] { font-size: .88em; }
+.headline[data-lines="4"] { font-size: .74em; line-height: .97; }
+.editorial-cover .editorialKicker { max-width: 100%; color: rgba(255,255,255,.82); font-size: clamp(9px, 1.45cqw, 17px); font-weight: 700; letter-spacing: .12em; }
+.editorial-cover .editorialDeck { max-width: 92%; color: rgba(255,255,255,.8); font-family: var(--font-geist-sans), Arial, sans-serif; font-size: clamp(11px, 1.75cqw, 21px); font-weight: 460; line-height: 1.32; letter-spacing: -.015em; }
+.editorial-cover .footer { margin-top: clamp(14px, 2.4cqw, 30px); padding-top: clamp(9px, 1.45cqw, 17px); border-top: 1px solid rgba(255,255,255,.34); color: rgba(255,255,255,.82); font-size: clamp(8px, 1.35cqw, 16px); }
+.editorialCoverContent { gap: clamp(10px, 1.7cqw, 20px); }
+.editorialSeal { display: inline-flex; align-items: center; justify-self: start; gap: .52em; max-width: 86%; padding: .48em .72em .48em .48em; border: 1px solid rgba(255,255,255,.54); border-radius: 999px; background: rgba(8, 10, 12, .46); backdrop-filter: blur(8px); color: #fff; font-size: clamp(9px, 1.8cqw, 20px); font-weight: 650; letter-spacing: -.025em; }
+.editorialSeal b { display: grid; width: 1.65em; aspect-ratio: 1; place-items: center; border-radius: 50%; background: rgba(255,255,255,.18); font-family: Georgia, serif; font-size: 1em; }
+.editorialSeal span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorialSeal i { display: grid; width: 1.18em; aspect-ratio: 1; place-items: center; border-radius: 50%; background: var(--brand-secondary); color: #111214; font-size: .68em; font-style: normal; font-weight: 900; }
+.editorialDeck { max-width: 78%; color: rgba(255,255,255,.86); font-size: clamp(12px, 2.5cqw, 30px); font-weight: 500; line-height: 1.08; }
+.editorialCoverCta { display: inline-flex; align-items: center; justify-self: start; gap: .84em; margin-top: clamp(2px, .8cqw, 10px); padding: .68em .7em .68em 1em; border-radius: 999px; background: var(--brand-secondary); color: #131416; font-size: clamp(10px, 2.1cqw, 24px); font-weight: 800; letter-spacing: -.045em; text-transform: uppercase; }
+.editorialCoverCta b { display: grid; width: 1.7em; aspect-ratio: 1; place-items: center; border-radius: 50%; background: rgba(19,20,22,.88); color: var(--brand-secondary); font-size: 1.08em; }
+
+/* Cover modes use the same slots and safety rules, while keeping one editorial family. */
+.editorialCoverSignature { /* Default photographic masthead: seal, deck and poster headline. */ }
+.editorialCoverPoster .editorialSeal, .editorialCoverEditorial .editorialSeal, .editorialCoverHighlight .editorialSeal, .editorialCoverSplit .editorialSeal { display: none; }
+.editorialCoverPoster .editorialContent { max-width: 90%; }
+.editorialCoverPoster .editorialContent h3 { font-size: clamp(24px, 13.8cqw, 168px); }
+.editorialCoverPoster .editorialCoverCta { display: none; }
+
+.editorialCoverEditorial .editorialContent { width: min(60%, 700px); max-width: 60%; }
+.editorialCoverEditorial .editorialContent h3 { font-size: clamp(26px, 9.2cqw, 110px); font-weight: 400; line-height: .91; letter-spacing: -.048em; text-transform: none; }
+.editorialCoverEditorial .editorialKicker { display: inline; }
+.editorialCoverEditorial .editorialDeck { max-width: 92%; font-size: clamp(11px, 1.75cqw, 21px); }
+
+.editorialCoverHighlight .photo::after { background: linear-gradient(180deg, rgba(3,5,8,.25) 0%, rgba(3,5,8,.12) 37%, rgba(3,5,8,.94) 100%); }
+.editorialCoverHighlight .editorialContent h3 { max-width: 92%; font-size: clamp(24px, 13.8cqw, 168px); }
+.editorialCoverHighlight .editorialContent h3 mark { display: inline-block; background: var(--brand-secondary); color: #111214; padding: 0 .08em .05em; font: inherit; line-height: .78; }
+.editorialCoverHighlight .editorialKicker { padding: .42em .7em; background: var(--brand-secondary); color: #111214; font-weight: 800; }
+.editorialCoverHighlight .editorialCoverCta { display: none; }
+
+.editorialCoverSplit { color: #f6f3ec; background: #151411; }
+.editorialCoverSplit .photo { clip-path: inset(0 0 46% 0); }
+.editorialCoverSplit .photo::after { background: linear-gradient(180deg, rgba(4,5,6,.05) 12%, rgba(4,5,6,.75) 100%); }
+.editorialCoverSplit::before { top: 58%; right: auto; left: clamp(16px, 4.7cqw, 62px); bottom: auto; width: clamp(48px, 8cqw, 96px); height: 2px; background: var(--brand-secondary); }
+.editorialCoverSplit .editorialContent { max-width: 92%; padding-top: 52%; }
+.editorialCoverSplit .editorialContent h3 { color: var(--brand-secondary); font-size: clamp(24px, 12.2cqw, 148px); line-height: .82; }
+.editorialCoverSplit .editorialDeck { color: rgba(246,243,236,.78); }
+.editorialCoverSplit .editorialCoverCta { display: none; }
 
 .editorial-content { background: #fcfbf7; }
 .editorial-content::before { content: ""; position: absolute; top: 16%; bottom: 16%; left: 18%; width: 1px; background: color-mix(in srgb, var(--brand-primary) 46%, transparent); }
 .editorial-content .editorialContent { align-content: center; max-width: 80%; margin-left: auto; }
-.editorial-content .editorialContent h3 { max-width: 100%; font-size: clamp(30px, 8.8cqw, 108px); line-height: .89; }
+.editorial-content .editorialContent h3 { max-width: 86%; font-family: Georgia, "Times New Roman", serif; font-size: clamp(28px, 7.6cqw, 92px); font-weight: 400; line-height: .96; letter-spacing: -.043em; }
 .editorial-content .body { max-width: 91%; color: #51504a; }
 
 .editorial-image { color: #fff; background: #181a1c; }
 .editorial-image .photo::after { background: rgba(7, 8, 9, .26); }
 .editorial-image .editorialContent { align-content: end; max-width: 89%; margin: auto 0 0; padding: clamp(14px, 2.7cqw, 34px); background: rgba(12, 13, 14, .88); }
-.editorial-image .editorialContent h3 { max-width: 100%; font-size: clamp(30px, 8.5cqw, 106px); line-height: .9; }
+.editorial-image .editorialContent h3 { max-width: 82%; font-family: Georgia, "Times New Roman", serif; font-size: clamp(28px, 7.4cqw, 90px); font-weight: 400; line-height: .96; letter-spacing: -.043em; }
 .editorial-image .body { max-width: 94%; color: rgba(255,255,255,.8); }
 .editorial-image .footer { margin-top: 0; padding: clamp(12px, 2.4cqw, 28px); background: rgba(12, 13, 14, .88); }
 
 .editorial-highlight { color: #fff; background: var(--brand-primary); }
 .editorial-highlight::before { content: ""; position: absolute; top: 10%; right: 10%; width: 24%; aspect-ratio: 1; border: 1px solid rgba(255,255,255,.45); border-radius: 50%; }
 .editorial-highlight .editorialContent { align-content: center; max-width: 86%; }
-.editorial-highlight .editorialContent h3 { max-width: 100%; font-size: clamp(34px, 10.2cqw, 126px); line-height: .86; }
+.editorial-highlight .editorialContent h3 { max-width: 86%; font-family: Georgia, "Times New Roman", serif; font-size: clamp(31px, 8.2cqw, 100px); font-weight: 400; line-height: .93; letter-spacing: -.045em; }
 .editorial-highlight .body { max-width: 86%; color: rgba(255,255,255,.82); }
 .editorial-highlight .header, .editorial-highlight .footer { color: rgba(255,255,255,.92); }
 
@@ -128,12 +184,13 @@
 .editorial-closing { background: #111214; color: #f7f5ef; }
 .editorial-closing::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 18%; background: var(--brand-primary); }
 .editorial-closing .editorialContent { align-content: end; max-width: 84%; padding-bottom: clamp(30px, 6.5cqw, 76px); }
-.editorial-closing .editorialContent h3 { max-width: 100%; font-size: clamp(34px, 10cqw, 124px); line-height: .86; }
+.editorial-closing .editorialContent h3 { max-width: 82%; font-family: Georgia, "Times New Roman", serif; font-size: clamp(31px, 8.2cqw, 100px); font-weight: 400; line-height: .93; letter-spacing: -.045em; }
 .editorial-closing .header { color: rgba(247,245,239,.78); }
 .editorial-closing .footer { color: #fff; }
 
 .editorialKicker { justify-self: start; color: currentColor; font-size: clamp(9px, 1.85cqw, 20px); font-weight: 650; letter-spacing: .055em; line-height: 1.1; text-transform: uppercase; }
 .editorial-cover .editorialKicker, .editorial-content .editorialKicker { color: var(--brand-primary); }
+.editorial-cover .editorialKicker { color: rgba(255,255,255,.88); }
 .editorialQuoteMark { position: absolute; top: -.23em; left: -.08em; color: var(--brand-secondary); font-family: Georgia, serif; font-size: clamp(116px, 31cqw, 380px); font-weight: 700; line-height: 1; opacity: .45; }
 .editorial-highlight .editorialKicker, .editorial-highlight .editorialQuoteMark { color: var(--brand-secondary); }
 .editorial-highlight .editorialContent h3 { position: relative; z-index: 1; }
@@ -154,6 +211,9 @@
 .compact.closing .content { padding-bottom: 20%; }
 .compact .editorialKicker, .compact .editorialQuoteMark, .compact .editorialStat span, .compact .editorialList { display: none; }
 .compact .editorialContent { margin-top: 9%; padding: 0; background: transparent; }
+.compact.editorial-cover .editorialContent { padding-top: 15%; }
+.compact.editorial-cover .editorialContent h3 { font-size: clamp(21px, 11.5cqw, 72px); }
+.compact .editorialSeal, .compact .editorialDeck, .compact .editorialCoverCta, .compact .editorialBadge { display: none; }
 .compact.editorial-image .editorialContent { padding: 10%; background: rgba(12, 13, 14, .82); }
 .compact.editorial-data-list .editorialContent { align-content: center; }
 .compact .editorialStat strong { font-size: clamp(34px, 17cqw, 80px); }

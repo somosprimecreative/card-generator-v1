@@ -35,7 +35,7 @@ export function validateContent(content: Content, template: Template): RenderIss
   if (content.title.trim().length > contentLimits.title || content.body.trim().length > contentLimits.body) {
     issues.push({ code: "content-overflow", message: "O texto foi reduzido para preservar a leitura no formato escolhido." });
   }
-  if ((template.pageBlueprint.includes("photo-caption") || template.pageBlueprint.includes("editorial-image")) && !normalized.imageName) {
+  if ((template.pageBlueprint.includes("photo-caption") || template.pageBlueprint.includes("editorial-cover") || template.pageBlueprint.includes("editorial-image")) && !normalized.imageName) {
     issues.push({ code: "missing-image", message: "Este template funciona melhor com uma imagem, mas pode ser gerado sem ela." });
   }
   return issues;

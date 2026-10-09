@@ -1,16 +1,17 @@
 "use client";
-/* eslint-disable @next/next/no-img-element, jsx-a11y/label-has-associated-control, react-hooks/set-state-in-effect, react-hooks/static-components -- Official SVG assets must remain direct files; this is a stateful product shell with local view fragments. */
+/* eslint-disable @next/next/no-img-element, jsx-a11y/label-has-associated-control, react-hooks/static-components -- Official SVG assets must remain direct files; this is a stateful product shell with local view fragments. */
 
 import { ChangeEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, CircleHelp, Copy, Download, Grid2X2, House, Image, Layers3, LayoutPanelTop, Menu, Moon, Palette, Pencil, Plus, Settings2, Sparkles, Sun, Trash2, X, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import type { ActiveAuthMember } from "@/lib/auth/types";
-import { BrandProfile, Content, Creation, emptyContent, formats, FormatId, seedBrands, templatePreviewCreation, templates } from "./pixel-data";
+import { BrandProfile, Content, Creation, editorialCoverVariants, emptyContent, formats, FormatId, seedBrands, templatePreviewCreation, templates } from "./pixel-data";
 import { CardRenderer } from "./CardRenderer";
 import { downloadCard, downloadCardsZip, ExportFormat } from "./card-export";
 import { composePages, inspectRenderedCard, validateContent } from "./pixel-engine";
 import { prepareImageForCard } from "./image-processing";
+import { loadCreations, saveCreations } from "./creation-storage";
 
 type Screen = "home" | "creations" | "templates" | "brands" | "settings" | "generate" | "result";
 type Retention = "15" | "30" | "90" | "custom";
@@ -67,6 +68,7 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
   const [selectedCreation, setSelectedCreation] = useState<string | null>(null);
   const [resultPage, setResultPage] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const [preparingImage, setPreparingImage] = useState(false);
   const [step, setStep] = useState(1);
   const [notice, setNotice] = useState<Notice>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -80,22 +82,31 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setThemeReady(true));
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    const hydrate = async () => {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as { retention?: Retention; customDays?: number; brands?: BrandProfile[] };
+          setRetention(parsed.retention ?? "30"); setCustomDays(parsed.customDays ?? 45);
+          setBrands(parsed.brands?.length ? parsed.brands : seedBrands);
+        } catch { window.localStorage.removeItem(STORAGE_KEY); }
+      }
       try {
-        const parsed = JSON.parse(saved) as { retention?: Retention; customDays?: number; brands?: BrandProfile[]; creations?: Creation[] };
-        setRetention(parsed.retention ?? "30"); setCustomDays(parsed.customDays ?? 45);
-        setBrands(parsed.brands?.length ? parsed.brands : seedBrands);
-        setCreations((parsed.creations ?? []).filter((item) => new Date(item.expiresAt) > new Date()));
-      } catch { window.localStorage.removeItem(STORAGE_KEY); }
+        const stored = (await loadCreations()).filter((item) => new Date(item.expiresAt) > new Date());
+        setCreations(stored);
+      } catch {
+        setCreations([]);
+        setNotice({ tone: "info", text: "As criações desta sessão não poderão ser mantidas após recarregar." });
+      } finally { setHydrated(true); }
     }
-    setHydrated(true);
+    void hydrate();
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ retention, customDays, brands, creations }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ retention, customDays, brands }));
+    void saveCreations(creations).catch(() => setNotice({ tone: "error", text: "Não foi possível guardar esta criação neste navegador." }));
   }, [hydrated, retention, customDays, brands, creations]);
 
   useEffect(() => { if (notice) { const timeout = window.setTimeout(() => setNotice(null), 4200); return () => window.clearTimeout(timeout); } }, [notice]);
@@ -106,11 +117,12 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
   const currentTemplate = templates.find((item) => item.id === templateId) ?? templates[0];
 
   const navigate = (next: Screen) => { setScreen(next); setSelectedIds([]); setMobileNavOpen(false); if (next === "generate") setStep(1); };
-  const newGeneration = (brandId?: string | null | unknown) => { const chosenBrand = typeof brandId === "string" || brandId === null ? brandId : (brands[0]?.id ?? null); setSelectedBrand(chosenBrand); setFormat("portrait"); setTemplateId("minimal-editorial"); setContent(emptyContent); setSuggestedPages(null); setStep(1); setMobileNavOpen(false); setScreen("generate"); };
+  const newGeneration = (brandId?: string | null | unknown) => { const chosenBrand = typeof brandId === "string" || brandId === null ? brandId : (brands[0]?.id ?? null); setSelectedBrand(chosenBrand); setFormat("portrait"); setTemplateId("minimal-editorial"); setContent({ ...emptyContent, coverVariant: "editorial" }); setSuggestedPages(null); setStep(1); setMobileNavOpen(false); setScreen("generate"); };
   const patchContent = (key: keyof Content, value: string) => { setSuggestedPages(null); setContent((old) => ({ ...old, [key]: value })); };
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0];
     if (!image) return;
+    setPreparingImage(true);
     try {
       const prepared = await prepareImageForCard(image);
       setSuggestedPages(null);
@@ -118,12 +130,13 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
       setNotice({ tone: "success", text: "Imagem preparada para recorte e exportação nítidos." });
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : "Não foi possível preparar esta imagem." });
-    }
+    } finally { setPreparingImage(false); event.target.value = ""; }
   };
 
   const generate = async () => {
     const validation = validateContent(content, currentTemplate);
     if (!content.title.trim()) { setNotice({ tone: "error", text: validation[0]?.message ?? "Inclua um título antes de gerar." }); return; }
+    if (preparingImage) { setNotice({ tone: "info", text: "Aguarde o preparo da imagem terminar." }); return; }
     setGenerating(true);
     await new Promise((resolve) => window.setTimeout(resolve, 1100));
     const pages = composePages(content, currentTemplate, suggestedPages ?? undefined);
@@ -227,9 +240,9 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
   const Generation = () => <Shell><SectionHead eyebrow="Nova criação" title="Gerar" action={<button className="button ghost" onClick={() => navigate("home")}><Icon name="close"/> Cancelar</button>}/><div className="generator-layout"><aside className="stepper">{[[1, "Marca"], [2, "Formato"], [3, "Template"], [4, "Conteúdo"], [5, "Gerar"]].map(([number, label]) => <button key={String(number)} className={step === number ? "active" : step > Number(number) ? "done" : ""} onClick={() => step > Number(number) && setStep(Number(number))}><span>{step > Number(number) ? <Icon name="check" size={14}/> : number}</span>{label}</button>)}</aside><section className="generation-stage">
     {step === 1 && <><p className="stage-question">Para qual marca vamos criar?</p><p className="stage-helper">A marca oferece ao Pixel o contexto visual e verbal da criação.</p><div className="selection-grid brands-select">{brands.map((brand) => <button className={selectedBrand === brand.id ? "selected" : ""} onClick={() => setSelectedBrand(brand.id)} key={brand.id}><BrandAvatar brand={brand} large/><span><strong>{brand.name}</strong><small>{brand.slogan}</small></span><span className="selection-check"><Icon name="check" size={15}/></span></button>)}<button className={selectedBrand === null ? "selected no-brand" : "no-brand"} onClick={() => setSelectedBrand(null)}><span className="no-brand-symbol"><Icon name="mark"/></span><span><strong>Sem marca</strong><small>Usar apenas o conteúdo desta criação.</small></span><span className="selection-check"><Icon name="check" size={15}/></span></button></div></>}
     {step === 2 && <><p className="stage-question">Em qual formato a criação será publicada?</p><p className="stage-helper">O formato define quais templates podem ser usados depois.</p><div className="format-grid">{formats.map((item) => <button className={format === item.id ? "selected" : ""} key={item.id} onClick={() => { setFormat(item.id); if (!templates.find((template) => template.id === templateId && (item.id === "custom" || template.formats.includes(item.id)))) setTemplateId("minimal-editorial"); }}><span className={`format-ratio ${item.id}`}/><strong>{item.name}</strong><small>{item.pixels}</small><span className="selection-check"><Icon name="check" size={15}/></span></button>)}</div>{format === "custom" && <div className="custom-dimensions"><label>Largura<input type="number" min="320" max="6000" value={customSize.width} onChange={(event) => setCustomSize((value) => ({ ...value, width: Number(event.target.value) }))}/></label><span>×</span><label>Altura<input type="number" min="320" max="6000" value={customSize.height} onChange={(event) => setCustomSize((value) => ({ ...value, height: Number(event.target.value) }))}/></label></div>}</>}
-    {step === 3 && <><p className="stage-question">Qual estrutura visual funciona melhor?</p><p className="stage-helper">Previews mostram a composição real de cada template. Nenhum deles abre editor livre.</p><div className="template-grid">{compatibleTemplates.map((item) => <button className={templateId === item.id ? "selected" : ""} key={item.id} onClick={() => setTemplateId(item.id)}><CardRenderer creation={templatePreviewCreation(item)} brand={seedBrands[0]} compact/><strong>{item.name}</strong><small>{item.description}</small><em>{item.pages === "multiple" ? "Sequência de 5 páginas" : item.pages === "single" ? "Card" : "Card ou sequência"}</em><span className="selection-check"><Icon name="check" size={15}/></span></button>)}</div></>}
-    {step === 4 && <><p className="stage-question">O que você quer comunicar?</p><p className="stage-helper">Descreva a ideia em linguagem natural ou escreva os campos abaixo. Você revisa tudo antes de gerar.</p><div className="content-form"><label className="brief-label">Briefing<textarea value={content.brief} onChange={(event) => patchContent("brief", event.target.value)} placeholder="Ex.: anunciar uma nova consultoria para pequenos negócios, com tom direto e convidativo."/></label><button className="button subtle" onClick={interpretBrief} disabled={generating}><Icon name="spark"/> Interpretar briefing</button><div className="content-fields"><label>Título<input value={content.title} onChange={(event) => patchContent("title", event.target.value)}/></label><label>Subtítulo<input value={content.subtitle} onChange={(event) => patchContent("subtitle", event.target.value)}/></label><label className="wide">Texto<textarea value={content.body} onChange={(event) => patchContent("body", event.target.value)}/></label><label>CTA<input value={content.cta} onChange={(event) => patchContent("cta", event.target.value)}/></label><label>Imagem<input type="file" accept="image/*" onChange={handleImageUpload}/></label></div></div></>}
-    {step === 5 && <><p className="stage-question">Tudo pronto para o Pixel compor sua criação.</p><p className="stage-helper">{selectedBrand ? `${brands.find((item) => item.id === selectedBrand)?.name} · ` : "Sem marca · "}{formats.find((item) => item.id === format)?.name} · {currentTemplate.name}</p><div className="generate-summary"><CardRenderer creation={{ id: "preview", name: content.title, brandId: selectedBrand, templateId, format, dimensions: dimensionsFor(format, customSize), content, pages: [content], createdAt: now(), expiresAt: now() }} brand={brands.find((item) => item.id === selectedBrand)} /><div><span className="eyebrow">Pronto para gerar</span><h2>A composição será calculada pelo template.</h2><p>Você poderá ajustar conteúdo, imagem ou formato depois, sem mover elementos manualmente.</p><button className="button vermilion large" onClick={generate} disabled={generating}>{generating ? <><span className="spinner"/> Pixel está compondo</> : <><Icon name="spark"/> Gerar card</>}</button></div></div></>}
+    {step === 3 && <><p className="stage-question">Qual estrutura visual funciona melhor?</p><p className="stage-helper">Previews mostram a composição real de cada template. Nenhum deles abre editor livre.</p><div className="template-grid">{compatibleTemplates.map((item) => <button className={templateId === item.id ? "selected" : ""} key={item.id} onClick={() => { setTemplateId(item.id); if (item.id === "minimal-editorial") setContent((value) => ({ ...value, coverVariant: value.coverVariant ?? "editorial" })); }}><CardRenderer creation={templatePreviewCreation(item)} brand={seedBrands[0]} compact/><strong>{item.name}</strong><small>{item.description}</small><em>{item.pages === "multiple" ? `${item.pageBlueprint.length} páginas` : item.pages === "single" ? "Card" : "Card ou sequência"}</em><span className="selection-check"><Icon name="check" size={15}/></span></button>)}</div>{templateId === "minimal-editorial" && <section className="cover-variant-picker" aria-label="Variação de capa Brand Editorial"><p>Variação de capa</p><div>{editorialCoverVariants.map((variant) => <button className={content.coverVariant === variant.id || (!content.coverVariant && variant.id === "editorial") ? "selected" : ""} key={variant.id} onClick={() => setContent((value) => ({ ...value, coverVariant: variant.id }))}><strong>{variant.name}</strong><small>{variant.description}</small></button>)}</div></section>}</>}
+    {step === 4 && <><p className="stage-question">O que você quer comunicar?</p><p className="stage-helper">Descreva a ideia em linguagem natural ou escreva os campos abaixo. Você revisa tudo antes de gerar.</p><div className="content-form"><label className="brief-label">Briefing<textarea value={content.brief} onChange={(event) => patchContent("brief", event.target.value)} placeholder="Ex.: anunciar uma nova consultoria para pequenos negócios, com tom direto e convidativo."/></label><button className="button subtle" onClick={interpretBrief} disabled={generating || preparingImage}><Icon name="spark"/> Interpretar briefing</button><div className="content-fields"><label>Título<input value={content.title} onChange={(event) => patchContent("title", event.target.value)}/></label><label>Subtítulo<input value={content.subtitle} onChange={(event) => patchContent("subtitle", event.target.value)}/></label><label className="wide">Texto<textarea value={content.body} onChange={(event) => patchContent("body", event.target.value)}/></label><label>CTA<input value={content.cta} onChange={(event) => patchContent("cta", event.target.value)}/></label><label>Imagem<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageUpload} disabled={preparingImage}/>{preparingImage && <small>Preparando imagem…</small>}</label></div></div></>}
+    {step === 5 && <><p className="stage-question">Tudo pronto para o Pixel compor sua criação.</p><p className="stage-helper">{selectedBrand ? `${brands.find((item) => item.id === selectedBrand)?.name} · ` : "Sem marca · "}{formats.find((item) => item.id === format)?.name} · {currentTemplate.name}</p><div className="generate-summary"><CardRenderer creation={{ id: "preview", name: content.title, brandId: selectedBrand, templateId, format, dimensions: dimensionsFor(format, customSize), content, pages: [content], createdAt: now(), expiresAt: now() }} brand={brands.find((item) => item.id === selectedBrand)} /><div><span className="eyebrow">Pronto para gerar</span><h2>A composição será calculada pelo template.</h2><p>Você poderá ajustar conteúdo, imagem ou formato depois, sem mover elementos manualmente.</p><button className="button vermilion large" onClick={generate} disabled={generating || preparingImage}>{generating ? <><span className="spinner"/> Pixel está compondo</> : preparingImage ? "Preparando imagem…" : <><Icon name="spark"/> Gerar card</>}</button></div></div></>}
     <footer className="stage-actions">{step > 1 ? <button className="button ghost" onClick={() => setStep((value) => value - 1)}><Icon name="back"/> Voltar</button> : <span/>}{step < 5 && <button className="button vermilion" onClick={() => setStep((value) => value + 1)}>Continuar <Icon name="arrow"/></button>}</footer>
   </section></div></Shell>;
 
@@ -264,7 +277,7 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
     </Shell>;
   };
 
-  const Modal = () => (editing && activeCreation) ? <div className="modal-backdrop"><section className="modal"><button className="modal-close" aria-label="Fechar" onClick={() => setEditing(false)}><Icon name="close"/></button><p className="eyebrow">Editar conteúdo</p><h2>Atualize o que a criação comunica.</h2><p>O Pixel mantém o template e recalcula a composição. Não há movimentação manual de elementos.</p><div className="content-fields"><label>Título<input value={content.title} onChange={(event) => patchContent("title", event.target.value)}/></label><label>Subtítulo<input value={content.subtitle} onChange={(event) => patchContent("subtitle", event.target.value)}/></label><label className="wide">Texto<textarea value={content.body} onChange={(event) => patchContent("body", event.target.value)}/></label><label>CTA<input value={content.cta} onChange={(event) => patchContent("cta", event.target.value)}/></label><label>Imagem<input type="file" accept="image/*" onChange={handleImageUpload}/></label></div><div className="modal-actions"><button className="button ghost" onClick={() => setEditing(false)}>Cancelar</button><button className="button vermilion" onClick={updateCreation}><Icon name="spark"/> Atualizar card</button></div></section></div> : null;
+  const Modal = () => (editing && activeCreation) ? <div className="modal-backdrop"><section className="modal"><button className="modal-close" aria-label="Fechar" onClick={() => setEditing(false)}><Icon name="close"/></button><p className="eyebrow">Editar conteúdo</p><h2>Atualize o que a criação comunica.</h2><p>O Pixel mantém o template e recalcula a composição. Não há movimentação manual de elementos.</p><div className="content-fields"><label>Título<input value={content.title} onChange={(event) => patchContent("title", event.target.value)}/></label><label>Subtítulo<input value={content.subtitle} onChange={(event) => patchContent("subtitle", event.target.value)}/></label><label className="wide">Texto<textarea value={content.body} onChange={(event) => patchContent("body", event.target.value)}/></label><label>CTA<input value={content.cta} onChange={(event) => patchContent("cta", event.target.value)}/></label><label>Imagem<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageUpload} disabled={preparingImage}/>{preparingImage && <small>Preparando imagem…</small>}</label></div><div className="modal-actions"><button className="button ghost" onClick={() => setEditing(false)}>Cancelar</button><button className="button vermilion" onClick={updateCreation} disabled={preparingImage}><Icon name="spark"/> Atualizar card</button></div></section></div> : null;
   const VariationModal = () => (variationOpen && activeCreation) ? <div className="modal-backdrop"><section className="modal compact-modal"><button className="modal-close" aria-label="Fechar" onClick={() => setVariationOpen(false)}><Icon name="close"/></button><p className="eyebrow">Gerar variação</p><h2>O que você quer explorar?</h2><div className="variation-options">{[["layout", "Variar layout", "Outra estrutura visual compatível."], ["text", "Variar texto", "Uma nova leitura da mesma ideia."], ["image", "Variar imagem", "Preparado para assets conectados."], ["all", "Variar tudo", "Outra direção com base na criação."]].map(([value, label, description]) => <button className={variation === value ? "selected" : ""} key={value} onClick={() => setVariation(value)}><strong>{label}</strong><small>{description}</small><span className="selection-check"><Icon name="check" size={15}/></span></button>)}</div><label className="brief-label">Orientação opcional<textarea placeholder="Ex.: mais sóbrio, mais direto, mais editorial."/></label><div className="modal-actions"><button className="button ghost" onClick={() => setVariationOpen(false)}>Cancelar</button><button className="button vermilion" onClick={() => duplicate(activeCreation, true)}><Icon name="spark"/> Gerar variação</button></div></section></div> : null;
   const DeleteModal = () => confirmDelete ? <div className="modal-backdrop"><section className="modal confirm-modal"><img src={`/brand/pixel/symbol/symbol-${theme === "dark" ? "light" : "ink"}.svg`} alt="Símbolo Pixel"/><p className="eyebrow">Exclusão definitiva</p><h2>{confirmDelete === "bulk" ? `Excluir ${selectedIds.length} criações?` : "Excluir esta criação?"}</h2><p>Essa ação não pode ser desfeita. Arquivos que você já baixou ou exportou não são afetados.</p><div className="modal-actions"><button className="button ghost" onClick={() => setConfirmDelete(null)}>Cancelar</button><button className="button danger" onClick={removeCreations}><Icon name="trash"/> Excluir definitivamente</button></div></section></div> : null;
 

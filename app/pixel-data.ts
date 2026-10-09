@@ -27,6 +27,16 @@ export type CardComposition =
   | "editorial-data-list"
   | "editorial-closing";
 
+/** Cover choices stay within Brand Editorial; they are not separate templates. */
+export type EditorialCoverVariant = "signature" | "poster" | "editorial" | "highlight" | "split";
+export const editorialCoverVariants: { id: EditorialCoverVariant; name: string; description: string }[] = [
+  { id: "signature", name: "Assinatura", description: "Selo de marca, manchete-pôster e CTA." },
+  { id: "poster", name: "Pôster", description: "Fotografia integral e chamada de alto impacto." },
+  { id: "editorial", name: "Editorial", description: "Manchete serifada, leitura mais sóbria." },
+  { id: "highlight", name: "Destaque", description: "Palavras-chave em blocos cromáticos." },
+  { id: "split", name: "Split", description: "Imagem superior e painel editorial escuro." },
+];
+
 /**
  * Pages keep their editorial purpose separate from their visual composition.
  * This lets a future family reuse the same roles without inheriting Editorial's layout.
@@ -64,6 +74,7 @@ export type Template = {
   pageBlueprint: CardComposition[];
   /** Legacy templates omit this. New families declare semantic page intent here. */
   family?: "legacy" | "editorial";
+  coverVariants?: EditorialCoverVariant[];
   pagePlan?: PagePlan[];
   demo: Pick<Content, "title" | "subtitle" | "body" | "cta" | "imageData">;
 };
@@ -80,6 +91,7 @@ export type Content = {
   composition?: CardComposition;
   pageRole?: PageRole;
   slots?: PageSlots;
+  coverVariant?: EditorialCoverVariant;
 };
 
 export type Creation = {
@@ -118,7 +130,7 @@ export const templates: Template[] = [
   {
     id: "minimal-editorial", name: "Brand Editorial", category: "Editorial", formats: ["square", "portrait", "vertical", "story"], pages: "multiple", family: "editorial",
     description: "Seis páginas com ritmo de capa, leitura, imagem, destaque, dados e encerramento.", fields: ["Título", "Subtítulo", "Texto", "CTA", "Imagem"], style: "editorial-cover",
-    pageBlueprint: ["editorial-cover", "editorial-content", "editorial-image", "editorial-highlight", "editorial-data-list", "editorial-closing"],
+    pageBlueprint: ["editorial-cover", "editorial-content", "editorial-image", "editorial-highlight", "editorial-data-list", "editorial-closing"], coverVariants: ["signature", "poster", "editorial", "highlight", "split"],
     pagePlan: [
       { role: "cover", composition: "editorial-cover", slots: ["identity", "kicker", "title", "cta"] },
       { role: "content", composition: "editorial-content", slots: ["identity", "kicker", "title", "body"] },
@@ -127,7 +139,7 @@ export const templates: Template[] = [
       { role: "data-list", composition: "editorial-data-list", slots: ["identity", "statistic", "list", "cta"] },
       { role: "closing", composition: "editorial-closing", slots: ["identity", "kicker", "title", "cta"] },
     ],
-    demo: demo("Ideias boas pedem espaço.", "Notas de direção", "Uma sequência feita para ser lida sem pressa — e lembrada depois. Clareza nasce quando cada página cumpre uma função.", "Continuar", photo.architecture),
+    demo: demo("A marca começa antes da primeira frase.", "Edição 01 · Direção de marca", "Uma sequência feita para ser lida sem pressa — e lembrada depois. Clareza nasce quando cada página cumpre uma função.", "Continuar", "/demo/brand-editorial-studio-v1.png"),
   },
   { id: "pergunta-direta", name: "Pergunta direta", category: "Conversão", formats: ["square", "portrait", "vertical", "story"], pages: "both", description: "Uma pergunta em primeiro plano, com CTA de leitura imediata.", fields: ["Título", "Subtítulo", "CTA"], style: "prompt", pageBlueprint: ["prompt"], demo: demo("Sua marca está sendo entendida em poucos segundos?", "Ponto de partida", "", "Ver a resposta") },
   { id: "legenda-fotografica", name: "Legenda fotográfica", category: "Imagem", formats: ["square", "portrait", "vertical", "story"], pages: "both", description: "Imagem integral, identificação compacta e legenda de alto contraste.", fields: ["Imagem", "Título", "Texto", "CTA"], style: "photo-caption", pageBlueprint: ["photo-caption"], demo: demo("O detalhe muda a percepção.", "Direção de arte", "Fotografia com presença, texto curto e uma hierarquia que respeita a imagem.", "Conhecer", photo.portrait) },
@@ -147,6 +159,6 @@ export const seedBrands: BrandProfile[] = [
 export const emptyContent: Content = { brief: "", title: "Uma mensagem que merece atenção", subtitle: "Uma linha de contexto para tornar a ideia mais clara.", body: "Desenvolva sua mensagem de forma simples, com uma ideia por criação.", cta: "Saiba mais" };
 
 export function templatePreviewCreation(template: Template): Creation {
-  const content: Content = { brief: "", ...template.demo, composition: template.style, pageRole: template.pagePlan?.[0]?.role };
+  const content: Content = { brief: "", ...template.demo, composition: template.style, pageRole: template.pagePlan?.[0]?.role, ...(template.id === "minimal-editorial" ? { coverVariant: "editorial" as const } : {}) };
   return { id: `template-preview-${template.id}`, name: template.name, brandId: "aurora", templateId: template.id, format: "portrait", dimensions: { width: 1080, height: 1350 }, content, pages: [content], createdAt: "2026-09-21T00:00:00.000Z", expiresAt: "2026-10-21T00:00:00.000Z" };
 }
