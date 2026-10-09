@@ -44,9 +44,6 @@ export function validateContent(content: Content, template: Template): RenderIss
 const editorialPlans: PagePlan[] = [
   { role: "cover", composition: "editorial-cover", slots: ["identity", "kicker", "title", "cta"] },
   { role: "content", composition: "editorial-content", slots: ["identity", "kicker", "title", "body"] },
-  { role: "image", composition: "editorial-image", slots: ["identity", "kicker", "title", "image", "cta"] },
-  { role: "highlight", composition: "editorial-highlight", slots: ["identity", "kicker", "highlight", "body"] },
-  { role: "data-list", composition: "editorial-data-list", slots: ["identity", "statistic", "list", "cta"] },
   { role: "closing", composition: "editorial-closing", slots: ["identity", "kicker", "title", "cta"] },
 ];
 
@@ -64,7 +61,7 @@ function semanticSlots(content: Content, plan: PagePlan, index: number): PageSlo
   const statistic = inherited.statistic ?? { value: String(list.length).padStart(2, "0"), label: "pontos para guardar" };
   return {
     identity: inherited.identity,
-    kicker: inherited.kicker || content.subtitle || ["Ponto de partida", "Leitura", "Em foco", "Ideia central", "Síntese", "Próximo passo"][index],
+    kicker: inherited.kicker || (plan.role === "cover" ? content.subtitle : ["", "Na prática", "Agora"][index]),
     title: inherited.title || content.title,
     body: inherited.body || content.body,
     image: inherited.image || { src: content.imageData, name: content.imageName, position: content.imagePosition },

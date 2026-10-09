@@ -113,10 +113,15 @@ function EditorialContent({ composition, content, identity }: { composition: Car
     {body && <p className={styles.body}>{body}</p>}
   </div>;
 
+  if (composition === "editorial-closing") return <div className={`${styles.content} ${styles.editorialContent} ${styles.editorialClosingContent}`}>
+    <h3>{title}</h3>
+    {body && <p className={styles.body}>{body}</p>}
+    <span className={styles.editorialSaveCta}><b aria-hidden="true">▮</b>{slots.cta || content.cta || "Salvar este post"}</span>
+  </div>;
+
   return <div className={`${styles.content} ${styles.editorialContent}`}>
-    {kicker && <span className={styles.editorialKicker}>{kicker}</span>}
     <h3><EditorialHeadline>{title}</EditorialHeadline></h3>
-    {(composition === "editorial-content" || composition === "editorial-image") && body && <p className={styles.body}>{body}</p>}
+    {composition === "editorial-content" && body && <p className={styles.body}>{body}</p>}
   </div>;
 }
 

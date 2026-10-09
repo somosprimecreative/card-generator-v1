@@ -129,14 +129,11 @@ const demo = (title: string, subtitle: string, body: string, cta: string, imageD
 export const templates: Template[] = [
   {
     id: "minimal-editorial", name: "Brand Editorial", category: "Editorial", formats: ["square", "portrait", "vertical", "story"], pages: "multiple", family: "editorial",
-    description: "Seis páginas com ritmo de capa, leitura, imagem, destaque, dados e encerramento.", fields: ["Título", "Subtítulo", "Texto", "CTA", "Imagem"], style: "editorial-cover",
-    pageBlueprint: ["editorial-cover", "editorial-content", "editorial-image", "editorial-highlight", "editorial-data-list", "editorial-closing"], coverVariants: ["signature", "poster", "editorial", "highlight", "split"],
+    description: "Três páginas: capa fotográfica, leitura e encerramento com CTA.", fields: ["Título", "Subtítulo", "Texto", "CTA", "Imagem"], style: "editorial-cover",
+    pageBlueprint: ["editorial-cover", "editorial-content", "editorial-closing"], coverVariants: ["signature", "poster", "editorial", "highlight", "split"],
     pagePlan: [
       { role: "cover", composition: "editorial-cover", slots: ["identity", "kicker", "title", "cta"] },
       { role: "content", composition: "editorial-content", slots: ["identity", "kicker", "title", "body"] },
-      { role: "image", composition: "editorial-image", slots: ["identity", "kicker", "title", "image", "cta"] },
-      { role: "highlight", composition: "editorial-highlight", slots: ["identity", "kicker", "highlight", "body"] },
-      { role: "data-list", composition: "editorial-data-list", slots: ["identity", "statistic", "list", "cta"] },
       { role: "closing", composition: "editorial-closing", slots: ["identity", "kicker", "title", "cta"] },
     ],
     demo: demo("A marca começa antes da primeira frase.", "Edição 01 · Direção de marca", "Uma sequência feita para ser lida sem pressa — e lembrada depois. Clareza nasce quando cada página cumpre uma função.", "Continuar", "/demo/brand-editorial-studio-v1.png"),
