@@ -91,6 +91,27 @@
 .closing .footer { color: var(--ink); }
 .closing .dots { color: var(--ink); }
 
+/* Full Type: poster typography carries the whole sequence. */
+.full-cover,.full-content,.full-closing { color:#f4dce3; background:#103525; }
+.referenceHeader { visibility:hidden; }
+.referenceFooter { position:relative; }
+.referenceFooter .dots { position:absolute; left:50%; transform:translateX(-50%); }
+.referenceFooter .dots i { border-radius:0; transform:rotate(45deg); }
+.full-content { background:#dde67c; color:#102d20; }
+.full-closing { background:#294a70; }
+.fullContent { align-content:center; gap:clamp(18px,3cqw,38px); max-width:94%; margin:auto 0; }
+.fullContent h3 { max-width:100%; font-family:Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; font-size:clamp(42px,15.6cqw,190px); font-weight:400; line-height:.86; letter-spacing:-.045em; text-transform:uppercase; }
+.fullContent .body { max-width:95%; font-size:clamp(14px,2.7cqw,34px); font-weight:500; line-height:1.22; }
+.fullPill { justify-self:end; padding:.42em .82em; border-radius:999px; background:#203f67; color:#fff; font-size:clamp(10px,2cqw,24px); font-weight:800; text-transform:uppercase; }
+.full-closing .fullPill { background:#dde67c; color:#111; }.fullSave,.socialSave { justify-self:start; border:.12em solid currentColor; border-radius:.36em; padding:.62em .9em; font-size:clamp(11px,2.25cqw,27px); font-weight:800; text-transform:uppercase; }
+
+/* Social Post: a stable profile header and generous white reading field. */
+.social-cover,.social-content,.social-closing { background:#fff; color:#17191e; }
+.socialContent { align-content:center; gap:clamp(18px,3.2cqw,40px); max-width:96%; margin:auto 0; }
+.socialProfile { display:flex; align-items:center; gap:.75em; }.socialProfile>b { display:grid; width:2.55em; aspect-ratio:1; place-items:center; overflow:hidden; border-radius:50%; background:linear-gradient(135deg,#6b3828,#e6b899); color:#fff; font-size:clamp(12px,2.2cqw,27px); }.socialProfile>b img { display:block; width:100%; height:100%; object-fit:cover; }
+.socialProfile span { display:grid; gap:.05em; }.socialProfile strong { font-size:clamp(14px,2.7cqw,33px); letter-spacing:-.055em; }.socialProfile i { display:inline-grid; width:1em; aspect-ratio:1; place-items:center; margin-left:.25em; border-radius:50%; background:#3d9ceb; color:#fff; font-size:.5em; font-style:normal; vertical-align:middle; }.socialProfile small { color:#8c9096; font-size:clamp(12px,2.25cqw,27px); }
+.socialContent h3 { max-width:100%; font-size:clamp(27px,7.8cqw,96px); font-weight:720; line-height:.98; letter-spacing:-.065em; }.socialContent .body { max-width:100%; font-size:clamp(16px,3.25cqw,39px); line-height:1.2; }.social-closing .socialContent { padding-bottom:8%; }
+
 /* Brand Editorial: six page purposes, each with its own composition. */
 .editorialChrome { color: inherit; }
 .editorialHandle { max-width: 74%; overflow: hidden; color: inherit; font-size: 1.04em; font-weight: 720; letter-spacing: -.055em; text-overflow: ellipsis; white-space: nowrap; }

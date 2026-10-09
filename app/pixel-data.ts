@@ -25,7 +25,9 @@ export type CardComposition =
   | "editorial-image"
   | "editorial-highlight"
   | "editorial-data-list"
-  | "editorial-closing";
+  | "editorial-closing"
+  | "full-cover" | "full-content" | "full-closing"
+  | "social-cover" | "social-content" | "social-closing";
 
 /** Cover choices stay within Brand Editorial; they are not separate templates. */
 export type EditorialCoverVariant = "signature" | "poster" | "editorial" | "highlight" | "split";
@@ -73,7 +75,7 @@ export type Template = {
   style: CardComposition;
   pageBlueprint: CardComposition[];
   /** Legacy templates omit this. New families declare semantic page intent here. */
-  family?: "legacy" | "editorial";
+  family?: "legacy" | "editorial" | "full-type" | "social-post";
   coverVariants?: EditorialCoverVariant[];
   pagePlan?: PagePlan[];
   demo: Pick<Content, "title" | "subtitle" | "body" | "cta" | "imageData">;
@@ -137,6 +139,28 @@ export const templates: Template[] = [
       { role: "closing", composition: "editorial-closing", slots: ["identity", "kicker", "title", "cta"] },
     ],
     demo: demo("A marca começa antes da primeira frase.", "Edição 01 · Direção de marca", "Uma sequência feita para ser lida sem pressa — e lembrada depois. Clareza nasce quando cada página cumpre uma função.", "Continuar", "/demo/brand-editorial-studio-v1.png"),
+  },
+  {
+    id: "full-type", name: "Full Type", category: "Tipografia", formats: ["square", "portrait", "vertical", "story"], pages: "multiple", family: "full-type",
+    description: "Três páginas tipográficas: pôster, argumento e chamada final.", fields: ["Título", "Subtítulo", "Texto", "CTA"], style: "full-cover",
+    pageBlueprint: ["full-cover", "full-content", "full-closing"],
+    pagePlan: [
+      { role: "cover", composition: "full-cover", slots: ["title", "body"] },
+      { role: "content", composition: "full-content", slots: ["kicker", "title", "body"] },
+      { role: "closing", composition: "full-closing", slots: ["kicker", "title", "body", "cta"] },
+    ],
+    demo: demo("As regras dos carrosséis que viralizam", "7 princípios práticos", "Comece pelo essencial, sem pular etapas. Pratique todo dia, nem que seja por dez minutos.", "Salvar este post"),
+  },
+  {
+    id: "social-post", name: "Social Post", category: "Social", formats: ["square", "portrait", "vertical", "story"], pages: "multiple", family: "social-post",
+    description: "Três páginas em linguagem de post: autoria, leitura e CTA.", fields: ["Título", "Subtítulo", "Texto", "CTA"], style: "social-cover",
+    pageBlueprint: ["social-cover", "social-content", "social-closing"],
+    pagePlan: [
+      { role: "cover", composition: "social-cover", slots: ["identity", "title", "body"] },
+      { role: "content", composition: "social-content", slots: ["identity", "title", "body"] },
+      { role: "closing", composition: "social-closing", slots: ["identity", "title", "body", "cta"] },
+    ],
+    demo: demo("Eu perdia um dia inteiro fazendo um carrossel.", "Hoje a IA faz em minutos — veja como.", "Comece pelo essencial, sem pular etapas. Pratique todo dia e ajuste o rumo toda semana.", "Salvar este post", photo.portrait),
   },
   { id: "pergunta-direta", name: "Pergunta direta", category: "Conversão", formats: ["square", "portrait", "vertical", "story"], pages: "both", description: "Uma pergunta em primeiro plano, com CTA de leitura imediata.", fields: ["Título", "Subtítulo", "CTA"], style: "prompt", pageBlueprint: ["prompt"], demo: demo("Sua marca está sendo entendida em poucos segundos?", "Ponto de partida", "", "Ver a resposta") },
   { id: "legenda-fotografica", name: "Legenda fotográfica", category: "Imagem", formats: ["square", "portrait", "vertical", "story"], pages: "both", description: "Imagem integral, identificação compacta e legenda de alto contraste.", fields: ["Imagem", "Título", "Texto", "CTA"], style: "photo-caption", pageBlueprint: ["photo-caption"], demo: demo("O detalhe muda a percepção.", "Direção de arte", "Fotografia com presença, texto curto e uma hierarquia que respeita a imagem.", "Conhecer", photo.portrait) },

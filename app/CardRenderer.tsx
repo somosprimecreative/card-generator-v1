@@ -17,6 +17,8 @@ function initials(name?: string) {
 
 const usesImage = (composition: CardComposition) => composition === "photo-caption" || composition === "editorial-cover" || composition === "editorial-image";
 const isEditorial = (composition: CardComposition) => composition.startsWith("editorial-");
+const isFull = (composition: CardComposition) => composition.startsWith("full-");
+const isSocial = (composition: CardComposition) => composition.startsWith("social-");
 
 function editorialHandle(identity: string) {
   const normalized = identity.trim();
@@ -125,6 +127,24 @@ function EditorialContent({ composition, content, identity }: { composition: Car
   </div>;
 }
 
+function FullTypeContent({ content, composition }: { content: Content; composition: CardComposition }) {
+  const slots = content.slots ?? {}; const title = slots.title || content.title; const body = slots.body || content.body;
+  return <div className={`${styles.content} ${styles.fullContent}`}>
+    {composition !== "full-cover" && <span className={styles.fullPill}>{slots.kicker || (composition === "full-closing" ? "Agora" : "Na prática")}</span>}
+    <h3>{title}</h3>{body && <p className={styles.body}>{body}</p>}
+    {composition === "full-closing" && <span className={styles.fullSave}>▮ {slots.cta || content.cta || "Salvar este post"}</span>}
+  </div>;
+}
+
+function SocialContent({ content, identity, composition }: { content: Content; identity: string; composition: CardComposition }) {
+  const slots = content.slots ?? {}; const title = slots.title || content.title; const body = slots.body || content.body;
+  return <div className={`${styles.content} ${styles.socialContent}`}>
+    <div className={styles.socialProfile}><b>{content.imageData ? <img src={content.imageData} alt=""/> : initials(slots.identity || identity)}</b><span><strong>{slots.identity || identity}<i>✓</i></strong><small>{editorialHandle(slots.identity || identity)}</small></span></div>
+    <h3>{title}</h3>{body && <p className={styles.body}>{body}</p>}
+    {composition === "social-closing" && <span className={styles.socialSave}>{slots.cta || content.cta || "Salvar este post"}</span>}
+  </div>;
+}
+
 export function CardRenderer({ creation, brand, page = 0, compact = false, exportMode = false }: { creation: Creation; brand?: BrandProfile; page?: number; compact?: boolean; exportMode?: boolean }) {
   const template = templates.find((item) => item.id === creation.templateId) ?? templates[0];
   const content = creation.pages[page] ?? creation.content;
@@ -142,6 +162,7 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
   const tag = content.slots?.kicker || content.subtitle || template.category;
   const image = content.slots?.image;
   const editorial = isEditorial(composition);
+  const full = isFull(composition); const social = isSocial(composition);
   const identity = content.slots?.identity || brand?.name || "Sem marca";
   const coverVariantClass = composition === "editorial-cover" ? ({
     signature: styles.editorialCoverSignature,
@@ -154,7 +175,7 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
   return <article
     data-pixel-card="true"
     data-template={composition}
-    data-family={editorial ? "editorial" : "legacy"}
+    data-family={editorial ? "editorial" : full ? "full-type" : social ? "social-post" : "legacy"}
     data-page-role={content.pageRole || (page === 0 ? "cover" : page === creation.pages.length - 1 ? "closing" : "content")}
     data-density={density}
     className={`${styles.card} ${styles[composition]} ${coverVariantClass} ${compact ? styles.compact : ""} ${exportMode ? styles.exportCard : ""}`}
@@ -166,13 +187,13 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
         : <div className={styles.photoFallback}><b>{initials(brand?.name)}</b><span>{image?.name || content.imageName || "Adicione uma imagem"}</span></div>}
     </div>}
 
-    <header className={`${styles.header} ${editorial ? styles.editorialChrome : ""}`}>
+    <header className={`${styles.header} ${editorial ? styles.editorialChrome : ""} ${full || social ? styles.referenceHeader : ""}`}>
       {editorial
         ? <><span className={styles.editorialHandle}>{editorialHandle(identity)}</span><span className={styles.editorialBadge}>{composition === "editorial-cover" ? template.category : tag}</span></>
         : <><span className={styles.identity}>{identity}</span><span className={styles.counter}>{pageLabel}<i />{countLabel}</span></>}
     </header>
 
-    {editorial ? <EditorialContent composition={composition} content={content} identity={identity}/> : <div className={styles.content}>
+    {editorial ? <EditorialContent composition={composition} content={content} identity={identity}/> : full ? <FullTypeContent composition={composition} content={content}/> : social ? <SocialContent composition={composition} content={content} identity={identity}/> : <div className={styles.content}>
       {(composition === "photo-caption" || composition === "dark-copy") && <span className={styles.tag}>{tag}</span>}
       {composition === "minimal-cover" && <div className={styles.profile}><b>{initials(brand?.name)}</b><span>{tag}</span></div>}
       {composition === "minimal-copy" && <span className={styles.sectionLabel}>{tag}</span>}
@@ -182,10 +203,10 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
       {!compact && content.body && <p className={styles.body}>{content.body}</p>}
     </div>}
 
-    <footer className={`${styles.footer} ${editorial ? `${styles.editorialChrome} ${styles.editorialFooter}` : ""}`}>
+    <footer className={`${styles.footer} ${editorial ? `${styles.editorialChrome} ${styles.editorialFooter}` : ""} ${full || social ? styles.referenceFooter : ""}`}>
       {editorial && <span className={styles.editorialPageCount}>{pageLabel}/{countLabel}</span>}
-      <span className={styles.dots}>{[0, 1, 2].map((dot) => <i key={dot} className={dot === (editorial ? page % 3 : 0) ? styles.dotActive : ""}/>)}</span>
-      <span className={styles.action}>{editorial ? (page === creation.pages.length - 1 ? "Salvar" : "Arrasta") : content.slots?.cta || content.cta || "Saiba mais"}<b aria-hidden="true">{editorial ? "→" : "↗"}</b></span>
+      <span className={styles.dots}>{[0, 1, 2].map((dot) => <i key={dot} className={dot === (editorial || full || social ? page % 3 : 0) ? styles.dotActive : ""}/>)}</span>
+      <span className={styles.action}>{editorial ? (page === creation.pages.length - 1 ? "Salvar" : "Arrasta") : full || social ? "Arrasta" : content.slots?.cta || content.cta || "Saiba mais"}<b aria-hidden="true">{editorial || full || social ? "→" : "↗"}</b></span>
     </footer>
   </article>;
 }
