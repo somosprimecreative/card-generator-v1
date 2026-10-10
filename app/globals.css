@@ -22,6 +22,7 @@
 .cover-variant-picker>p{margin:0 0 10px;font-size:12px;font-weight:700}
 .cover-variant-picker>div{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .cover-variant-picker button{display:grid;gap:4px;min-height:68px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);padding:9px;text-align:left}
+.integration-status>span.connected{background:var(--success-surface);color:var(--success)}
 .cover-variant-picker button:hover{border-color:var(--line-strong);background:var(--surface-2)}
 .cover-variant-picker strong{font-size:11px}
 .cover-variant-picker small{color:var(--muted);font-size:10px;line-height:1.25}

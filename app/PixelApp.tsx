@@ -8,7 +8,7 @@ import { logoutAction } from "@/app/actions/auth";
 import type { ActiveAuthMember } from "@/lib/auth/types";
 import { BrandProfile, Content, Creation, editorialCoverVariants, emptyContent, formats, FormatId, seedBrands, templatePreviewCreation, templates } from "./pixel-data";
 import { CardRenderer } from "./CardRenderer";
-import { downloadCard, downloadCardsZip, ExportFormat } from "./card-export";
+import { downloadCard, downloadCardsZip, ExportFormat, renderCardBlob, renderCardsZip, safeName } from "./card-export";
 import { composePages, inspectRenderedCard, validateContent } from "./pixel-engine";
 import { prepareImageForCard } from "./image-processing";
 import { loadCreations, saveCreations } from "./creation-storage";
@@ -16,6 +16,8 @@ import { loadCreations, saveCreations } from "./creation-storage";
 type Screen = "home" | "creations" | "templates" | "brands" | "settings" | "generate" | "result";
 type Retention = "15" | "30" | "90" | "custom";
 type Notice = { tone: "success" | "error" | "info"; text: string } | null;
+type GoogleDriveState = { loading: boolean; configured: boolean; connected: boolean };
+type DriveUploadState = { phase: string; percent: number } | null;
 
 const STORAGE_KEY = "pixel-workspace-v1";
 
@@ -78,6 +80,9 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
   const [variation, setVariation] = useState("layout");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [googleDrive, setGoogleDrive] = useState<GoogleDriveState>({ loading: true, configured: false, connected: false });
+  const [driveUpload, setDriveUpload] = useState<DriveUploadState>(null);
+  const [disconnectingDrive, setDisconnectingDrive] = useState(false);
   const exportNodes = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
@@ -110,6 +115,29 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
   }, [hydrated, retention, customDays, brands, creations]);
 
   useEffect(() => { if (notice) { const timeout = window.setTimeout(() => setNotice(null), 4200); return () => window.clearTimeout(timeout); } }, [notice]);
+
+  useEffect(() => {
+    let active = true;
+    const result = new URLSearchParams(window.location.search).get("drive");
+    let resultNotice: Notice = null;
+    if (result) {
+      window.history.replaceState({}, "", window.location.pathname);
+      const messages: Record<string, Notice> = {
+        connected: { tone: "success", text: "Google Drive conectado. A pasta Pixel está pronta para receber exportações." },
+        denied: { tone: "info", text: "A conexão com o Google Drive foi cancelada." },
+        configuration: { tone: "error", text: "A integração com Google Drive ainda não foi configurada." },
+        "invalid-state": { tone: "error", text: "Não foi possível validar a conexão com o Google Drive. Tente novamente." },
+        unauthenticated: { tone: "error", text: "Sua sessão expirou antes de concluir a conexão com o Google Drive." },
+        error: { tone: "error", text: "Não foi possível concluir a conexão com o Google Drive." },
+      };
+      resultNotice = messages[result] ?? null;
+    }
+    void fetch("/api/integrations/google-drive/status")
+      .then(async (response) => response.ok ? await response.json() as { configured: boolean; connected: boolean } : { configured: false, connected: false })
+      .then((state) => { if (active) { setGoogleDrive({ loading: false, configured: state.configured, connected: state.connected }); if (resultNotice) setNotice(resultNotice); } })
+      .catch(() => { if (active) setGoogleDrive({ loading: false, configured: false, connected: false }); });
+    return () => { active = false; };
+  }, []);
 
   const activeCreation = creations.find((item) => item.id === selectedCreation) ?? null;
   const activeBrand = brands.find((item) => item.id === (activeCreation?.brandId ?? selectedBrand ?? ""));
@@ -214,6 +242,76 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
     } catch { setNotice({ tone: "error", text: "Não foi possível criar o ZIP. Tente novamente." }); }
   };
 
+  const sendExportsToDrive = (files: File[]) => new Promise<string[]>((resolve, reject) => {
+    const data = new FormData();
+    files.forEach((file) => data.append("files", file));
+    const request = new XMLHttpRequest();
+    request.open("POST", "/api/integrations/google-drive/upload");
+    request.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const percent = Math.round((event.loaded / event.total) * 100);
+      setDriveUpload({ phase: percent === 100 ? "Salvando na pasta Pixel…" : "Enviando exportações ao Pixel…", percent });
+    };
+    request.onerror = () => reject(new Error("A conexão falhou antes de concluir o envio ao Google Drive."));
+    request.onload = () => {
+      let response: { error?: string; uploaded?: { name: string }[] } = {};
+      try { response = JSON.parse(request.responseText) as { error?: string; uploaded?: { name: string }[] }; }
+      catch { /* A mensagem padrão abaixo cobre uma resposta inválida. */ }
+      if (request.status < 200 || request.status >= 300) { reject(new Error(response.error || "Não foi possível enviar os arquivos ao Google Drive.")); return; }
+      resolve(response.uploaded?.map((file) => file.name) ?? []);
+    };
+    request.send(data);
+  });
+
+  const savePageToDrive = async () => {
+    if (!activeCreation || !googleDrive.connected || driveUpload) return;
+    const node = document.querySelector<HTMLElement>(".result-stage [data-pixel-card='true']");
+    if (!node) { setNotice({ tone: "error", text: "Não foi possível preparar a página para envio." }); return; }
+    const issues = inspectRenderedCard(node);
+    if (issues.length) { setNotice({ tone: "error", text: issues[0].message }); return; }
+    setDriveUpload({ phase: "Preparando a exportação…", percent: 0 });
+    try {
+      const blob = await renderCardBlob(node, exportFormat);
+      const file = new File([blob], `${safeName(activeCreation.name)}-${resultPage + 1}.${exportFormat}`, { type: blob.type || (exportFormat === "png" ? "image/png" : "image/jpeg") });
+      const uploaded = await sendExportsToDrive([file]);
+      setNotice({ tone: "success", text: `${uploaded[0] || "A página"} foi salva na pasta Pixel do Google Drive.` });
+    } catch (error) { setNotice({ tone: "error", text: error instanceof Error ? error.message : "Não foi possível enviar a página ao Google Drive." }); }
+    finally { setDriveUpload(null); }
+  };
+
+  const saveAllToDrive = async () => {
+    if (!activeCreation || !googleDrive.connected || driveUpload || activeCreation.pages.length < 2) return;
+    const nodes = exportNodes.current.filter((node): node is HTMLElement => node !== null);
+    if (nodes.length !== activeCreation.pages.length) { setNotice({ tone: "error", text: "Ainda estamos preparando as páginas para o envio. Tente novamente em instantes." }); return; }
+    const issues = nodes.flatMap((node) => inspectRenderedCard(node));
+    if (issues.length) { setNotice({ tone: "error", text: issues[0].message }); return; }
+    setDriveUpload({ phase: "Preparando imagens e ZIP…", percent: 0 });
+    try {
+      const images = await Promise.all(nodes.map(async (node, index) => {
+        const blob = await renderCardBlob(node, exportFormat);
+        return new File([blob], `${safeName(activeCreation.name)}-${String(index + 1).padStart(2, "0")}.${exportFormat}`, { type: blob.type || (exportFormat === "png" ? "image/png" : "image/jpeg") });
+      }));
+      const zip = await renderCardsZip(nodes, activeCreation.name, exportFormat);
+      const files = [...images, new File([zip], `${safeName(activeCreation.name)}.zip`, { type: "application/zip" })];
+      const uploaded = await sendExportsToDrive(files);
+      setNotice({ tone: "success", text: `${uploaded.length} arquivos foram salvos na pasta Pixel do Google Drive.` });
+    } catch (error) { setNotice({ tone: "error", text: error instanceof Error ? error.message : "Não foi possível enviar as exportações ao Google Drive." }); }
+    finally { setDriveUpload(null); }
+  };
+
+  const disconnectDrive = async () => {
+    if (!googleDrive.connected || disconnectingDrive) return;
+    setDisconnectingDrive(true);
+    try {
+      const response = await fetch("/api/integrations/google-drive/disconnect", { method: "POST" });
+      const result = await response.json() as { revoked?: boolean; error?: string };
+      if (!response.ok) throw new Error(result.error || "Não foi possível desconectar o Google Drive.");
+      setGoogleDrive({ loading: false, configured: true, connected: false });
+      setNotice({ tone: result.revoked ? "success" : "info", text: result.revoked ? "Google Drive desconectado e autorização revogada." : "Google Drive desconectado. Não foi possível confirmar a revogação no Google." });
+    } catch (error) { setNotice({ tone: "error", text: error instanceof Error ? error.message : "Não foi possível desconectar o Google Drive." }); }
+    finally { setDisconnectingDrive(false); }
+  };
+
   const brandFromForm = (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); const values = new FormData(event.currentTarget); const name = String(values.get("name") || "Nova marca"); const brand: BrandProfile = { id: crypto.randomUUID(), name, initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), colors: [String(values.get("primary") || "#F04B3E"), String(values.get("secondary") || "#A9DCE8")], fonts: String(values.get("fonts") || "Geist"), slogan: String(values.get("slogan") || ""), voice: String(values.get("voice") || ""), guidelines: String(values.get("guidelines") || ""), assets: "Aguardando upload de assets" }; setBrands((items) => [brand, ...items]); setNotice({ tone: "success", text: "Marca cadastrada e pronta para ser usada na geração." }); event.currentTarget.reset(); };
 
   const navItems: { id: Exclude<Screen, "generate" | "result">; label: string; icon: string }[] = [
@@ -256,7 +354,7 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
 
   const Brands = () => <Shell><SectionHead eyebrow="Contexto para geração consistente" title="Marcas" action={<button className="button vermilion" onClick={() => document.getElementById("brand-form")?.scrollIntoView({ behavior: "smooth" })}><Icon name="plus"/> Nova marca</button>}/><p className="page-intro">Uma marca reúne referências visuais e verbais para que o Pixel saiba como a comunicação deve parecer e como deve falar.</p><div className="brand-management">{brands.map((brand) => <article key={brand.id}><div className="brand-title"><BrandAvatar brand={brand} large/><div><h2>{brand.name}</h2><p>{brand.slogan || "Sem slogan definido"}</p></div><button className="button vermilion" onClick={() => newGeneration(brand.id)}>Usar para gerar <Icon name="arrow"/></button></div><dl><div><dt>Paleta</dt><dd><i style={{ background: brand.colors[0] }}/><i style={{ background: brand.colors[1] }}/>{brand.colors.join(" · ")}</dd></div><div><dt>Tipografia</dt><dd>{brand.fonts}</dd></div><div><dt>Tom de voz</dt><dd>{brand.voice}</dd></div><div><dt>Diretrizes</dt><dd>{brand.guidelines}</dd></div><div><dt>Ativos</dt><dd>{brand.assets}</dd></div></dl></article>)}</div><form id="brand-form" className="brand-form panel" onSubmit={brandFromForm}><div className="panel-head"><div><h2>Adicionar marca</h2><p>Cadastre o contexto essencial agora; o campo de ativos está pronto para ser conectado a um storage.</p></div></div><div className="content-fields"><label>Nome<input name="name" required placeholder="Nome da marca"/></label><label>Slogan<input name="slogan" placeholder="Uma frase de marca"/></label><label>Cor principal<input name="primary" defaultValue="#F04B3E" type="color"/></label><label>Cor de apoio<input name="secondary" defaultValue="#A9DCE8" type="color"/></label><label>Tipografias<input name="fonts" placeholder="Ex.: Geist + serif"/></label><label>Tom de voz<input name="voice" placeholder="Ex.: claro, próximo e preciso"/></label><label className="wide">Diretrizes<textarea name="guidelines" placeholder="O que deve ser priorizado nas criações?"/></label></div><button className="button vermilion" type="submit"><Icon name="plus"/> Cadastrar marca</button></form></Shell>;
 
-  const Settings = () => <Shell><SectionHead eyebrow="Produto e preferências" title="Configurações"/><div className="settings-stack"><section className="setting-card"><div><h2>Aparência</h2><p>Os dois temas usam tokens específicos do Pixel — não uma inversão automática de cores. Altere a aparência pelo controle global no cabeçalho.</p></div><span className="setting-status">Controle global</span></section><section className="setting-card"><div><h2>Retenção de criações</h2><p>Cada criação recebe uma data prevista de exclusão. Exclusões manuais são definitivas.</p></div><div className="retention-options">{(["15", "30", "90", "custom"] as Retention[]).map((value) => <label key={value}><input type="radio" name="retention" checked={retention === value} onChange={() => setRetention(value)}/><span>{value === "custom" ? "Personalizado" : `${value} dias${value === "30" ? " · padrão" : ""}`}</span></label>)}</div>{retention === "custom" && <label className="day-input">Dias<input type="number" min="1" max="365" value={customDays} onChange={(event) => setCustomDays(Number(event.target.value))}/></label>}</section><section className="setting-card integration"><div><p className="eyebrow">Integrações</p><h2>Google Drive</h2><p>Envie uma criação pronta para uma pasta escolhida. O Drive não é uma biblioteca dentro do Pixel.</p></div><div className="integration-status"><span>Não conectado</span><button className="button vermilion" disabled title="Requer configuração de OAuth do Google">Conectar Google Drive</button><small>Esta integração requer credenciais OAuth e uma pasta de destino configurada no ambiente.</small></div></section></div></Shell>;
+  const Settings = () => <Shell><SectionHead eyebrow="Produto e preferências" title="Configurações"/><div className="settings-stack"><section className="setting-card"><div><h2>Aparência</h2><p>Os dois temas usam tokens específicos do Pixel — não uma inversão automática de cores. Altere a aparência pelo controle global no cabeçalho.</p></div><span className="setting-status">Controle global</span></section><section className="setting-card"><div><h2>Retenção de criações</h2><p>Cada criação recebe uma data prevista de exclusão. Exclusões manuais são definitivas.</p></div><div className="retention-options">{(["15", "30", "90", "custom"] as Retention[]).map((value) => <label key={value}><input type="radio" name="retention" checked={retention === value} onChange={() => setRetention(value)}/><span>{value === "custom" ? "Personalizado" : `${value} dias${value === "30" ? " · padrão" : ""}`}</span></label>)}</div>{retention === "custom" && <label className="day-input">Dias<input type="number" min="1" max="365" value={customDays} onChange={(event) => setCustomDays(Number(event.target.value))}/></label>}</section><section className="setting-card integration"><div><p className="eyebrow">Integrações</p><h2>Google Drive</h2><p>Salve exportações numa pasta <strong>Pixel</strong> do seu Drive. O Pixel não lê a sua biblioteca e continua funcionando sem Drive.</p></div><div className="integration-status"><span className={googleDrive.connected ? "connected" : ""}>{googleDrive.loading ? "Verificando…" : googleDrive.connected ? "Conectado" : googleDrive.configured ? "Não conectado" : "Configuração necessária"}</span>{googleDrive.connected ? <><button className="button ghost" onClick={disconnectDrive} disabled={disconnectingDrive}>{disconnectingDrive ? "Desconectando…" : "Desconectar e revogar"}</button><small>As novas exportações serão salvas na pasta Pixel desta conta.</small></> : <><button className="button vermilion" onClick={() => { window.location.assign("/api/integrations/google-drive/connect"); }} disabled={googleDrive.loading || !googleDrive.configured} title={googleDrive.configured ? "Conectar uma conta Google" : "Requer configuração OAuth do Google no ambiente"}>Conectar Google Drive</button><small>{googleDrive.configured ? "Você autoriza somente o envio dos arquivos que escolher no Pixel." : "Aguarda credenciais OAuth e armazenamento seguro de tokens no ambiente."}</small></>}</div></section></div></Shell>;
 
   const Result = () => {
     if (!activeCreation) return <Creations />;
@@ -274,6 +372,8 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
           <div className="export-controls" aria-label="Formato de exportação"><span>Formato</span><button className={exportFormat === "png" ? "selected" : ""} onClick={() => setExportFormat("png")}>PNG</button><button className={exportFormat === "jpg" ? "selected" : ""} onClick={() => setExportFormat("jpg")}>JPG</button></div>
           <button className="button vermilion full" onClick={download}><Icon name="download"/> Baixar página {activeCreation.pages.length > 1 ? resultPage + 1 : ""}</button>
           {activeCreation.pages.length > 1 && <button className="button vermilion full" onClick={downloadAll}><Icon name="layers"/> Baixar todas em ZIP</button>}
+          {googleDrive.connected && <><button className="button ghost full" onClick={savePageToDrive} disabled={Boolean(driveUpload)}><Icon name="download"/> {driveUpload ? `${driveUpload.phase} ${driveUpload.percent}%` : "Salvar página no Drive"}</button>{activeCreation.pages.length > 1 && <button className="button ghost full" onClick={saveAllToDrive} disabled={Boolean(driveUpload)}><Icon name="layers"/> {driveUpload ? "Envio em andamento…" : "Salvar imagens e ZIP no Drive"}</button>}</>}
+          {!googleDrive.loading && googleDrive.configured && !googleDrive.connected && <button className="button ghost full" onClick={() => navigate("settings")}>Conectar Google Drive para salvar</button>}
           <div className="action-list"><button onClick={() => setVariationOpen(true)}><Icon name="spark"/><span><strong>Gerar variação</strong><small>Explorar outra direção com base nesta criação.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setEditing(true); }}><Icon name="edit"/><span><strong>Editar conteúdo</strong><small>Atualize textos ou CTA; a composição será recalculada.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setStep(4); setSelectedBrand(activeCreation.brandId); setFormat(activeCreation.format); setTemplateId(activeCreation.templateId); setScreen("generate"); }}><Icon name="image"/><span><strong>Trocar imagem</strong><small>Selecione uma nova imagem e gere novamente.</small></span><Icon name="arrow"/></button><button onClick={() => { setContent(activeCreation.content); setStep(2); setSelectedBrand(activeCreation.brandId); setTemplateId(activeCreation.templateId); setScreen("generate"); }}><Icon name="grid"/><span><strong>Adaptar formato</strong><small>Escolha outra proporção compatível.</small></span><Icon name="arrow"/></button><button className="danger-link" onClick={() => setConfirmDelete(activeCreation.id)}><Icon name="trash"/> Excluir definitivamente</button></div>
         </aside>
       </div>

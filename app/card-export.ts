@@ -5,7 +5,7 @@ import JSZip from "jszip";
 
 export type ExportFormat = "png" | "jpg";
 
-const safeName = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "pixel";
+export const safeName = (name: string) => name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "pixel";
 
 async function ready(node: HTMLElement) {
   await document.fonts?.ready;
@@ -19,6 +19,18 @@ export async function renderCard(node: HTMLElement, format: ExportFormat = "png"
   return format === "jpg" ? toJpeg(node, options) : toPng(node, options);
 }
 
+export async function renderCardBlob(node: HTMLElement, format: ExportFormat = "png") {
+  return fetch(await renderCard(node, format)).then((response) => response.blob());
+}
+
+export async function renderCardsZip(nodes: HTMLElement[], name: string, format: ExportFormat = "png") {
+  const zip = new JSZip();
+  for (const [index, node] of nodes.entries()) {
+    zip.file(`${safeName(name)}-${String(index + 1).padStart(2, "0")}.${format}`, await renderCardBlob(node, format));
+  }
+  return zip.generateAsync({ type: "blob" });
+}
+
 export async function downloadCard(node: HTMLElement, name: string, format: ExportFormat = "png") {
   const dataUrl = await renderCard(node, format);
   const anchor = document.createElement("a");
@@ -28,12 +40,7 @@ export async function downloadCard(node: HTMLElement, name: string, format: Expo
 }
 
 export async function downloadCardsZip(nodes: HTMLElement[], name: string, format: ExportFormat = "png") {
-  const zip = new JSZip();
-  for (const [index, node] of nodes.entries()) {
-    const dataUrl = await renderCard(node, format);
-    zip.file(`${safeName(name)}-${String(index + 1).padStart(2, "0")}.${format}`, dataUrl.split(",")[1], { base64: true });
-  }
-  const blob = await zip.generateAsync({ type: "blob" });
+  const blob = await renderCardsZip(nodes, name, format);
   const anchor = document.createElement("a");
   anchor.href = URL.createObjectURL(blob);
   anchor.download = `${safeName(name)}.zip`;
