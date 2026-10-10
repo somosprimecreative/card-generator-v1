@@ -174,7 +174,11 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
   const duplicate = (creation: Creation, asVariation = false) => {
     const copy: Creation = { ...creation, id: crypto.randomUUID(), name: `${creation.name}${asVariation ? " · variação" : " · cópia"}`, createdAt: now(), expiresAt: expiry(retention, customDays), parentId: asVariation ? creation.id : creation.parentId, pages: creation.pages.map((page) => ({ ...page })) };
     if (asVariation && variation === "text") copy.content = { ...copy.content, title: `${copy.content.title} — uma nova leitura` };
-    if (asVariation && variation === "layout") copy.templateId = copy.templateId === "minimal-editorial" ? "narrativa-noturna" : "minimal-editorial";
+    if (asVariation && variation === "layout") {
+      const nextTemplate = templates.find((item) => item.id === (copy.templateId === "minimal-editorial" ? "hook" : "minimal-editorial")) ?? templates[0];
+      copy.templateId = nextTemplate.id;
+      copy.pages = composePages(copy.content, nextTemplate);
+    }
     setCreations((items) => [copy, ...items]); setSelectedCreation(copy.id); setResultPage(0); setVariationOpen(false); setScreen("result");
     setNotice({ tone: "success", text: asVariation ? "Variação criada e vinculada à criação original." : "Criação duplicada." });
   };
