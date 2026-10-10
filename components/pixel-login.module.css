@@ -1,0 +1,1 @@
+.legalLinks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 12px;margin-top:20px}.legalLinks a{color:var(--muted);font-size:11px;text-decoration:none}.legalLinks a:hover{color:var(--primary);text-decoration:underline;text-underline-offset:3px}

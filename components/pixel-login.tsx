@@ -2,11 +2,13 @@
 /* eslint-disable @next/next/no-img-element -- official brand SVG must be served as the supplied asset. */
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { loginAction } from "@/app/actions/auth";
 import type { AuthFailureCode } from "@/lib/auth/types";
+import styles from "./pixel-login.module.css";
 
 const messages: Partial<Record<AuthFailureCode, string>> = {
   invalid_credentials: "E-mail ou senha inválidos.",
@@ -75,6 +77,10 @@ export function PixelLogin({ initialError }: { initialError?: AuthFailureCode })
         {error && <p className="login-error" role="alert">{error}</p>}
         <button className="button vermilion login-submit" type="submit" disabled={!email.trim() || !password.trim() || pending}>{pending ? "Entrando..." : "Entrar"}</button>
       </form>
+      <nav className={styles.legalLinks} aria-label="Documentos legais">
+        <Link href="/privacidade">Política de Privacidade</Link>
+        <Link href="/termos">Termos de Uso</Link>
+      </nav>
     </section>
   </main>;
 }
