@@ -228,7 +228,7 @@ export function PixelApp({ member }: { member: ActiveAuthMember }) {
       <div className="sidebar-bottom"><p>Criações ficam disponíveis por {retention === "custom" ? `${customDays} dias` : `${retention} dias`}.</p></div>
     </aside>
     <section className="main-panel">
-      <header className="desktop-top"><div><span>Produto ativo</span><strong>Pixel</strong><small>{member.workspaceName}</small></div><div className="desktop-actions"><button className="icon-button" aria-label="Alternar tema" onClick={() => setTheme(theme === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/></button><AccountMenu member={member}/></div></header>
+      <header className="desktop-top"><div><strong>Pixel</strong><small>{member.workspaceName}</small></div><div className="desktop-actions"><button className="icon-button" aria-label="Alternar tema" onClick={() => setTheme(theme === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/></button><AccountMenu member={member}/></div></header>
       <header className="mobile-top"><button className="brand-lockup" onClick={() => navigate("home")}><img src={`/brand/pixel/wordmark/wordmark-${theme === "dark" ? "light" : "ink"}.svg`} alt="Pixel" /></button><div className="mobile-actions"><button className="icon-button" aria-label="Abrir navegação" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(true)}><Icon name="menu"/></button><button className="icon-button" aria-label="Alternar tema" onClick={() => setTheme(theme === "light" ? "dark" : "light")}><Icon name={theme === "light" ? "moon" : "sun"}/></button><AccountMenu member={member} compact/></div></header>
       {children}
     </section>
