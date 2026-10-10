@@ -78,7 +78,7 @@ function semanticSlots(content: Content, plan: PagePlan, index: number): PageSlo
  */
 export function composePages(content: Content, template: Template, pageContent?: Content[]): StructuredPage[] {
   const safe = sanitizeContent(content);
-  const plans = template.family === "editorial" || template.family === "full-type" || template.family === "social-post"
+  const plans = template.family === "editorial" || template.family === "full-type" || template.family === "social-post" || template.family === "insider" || template.family === "hook"
     ? (template.pagePlan?.length ? template.pagePlan : editorialPlans)
     : null;
   const blueprints = template.pages === "multiple" ? template.pageBlueprint : [template.style];

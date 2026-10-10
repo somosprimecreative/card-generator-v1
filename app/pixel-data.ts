@@ -27,7 +27,9 @@ export type CardComposition =
   | "editorial-data-list"
   | "editorial-closing"
   | "full-cover" | "full-content" | "full-closing"
-  | "social-cover" | "social-content" | "social-closing";
+  | "social-cover" | "social-content" | "social-closing"
+  | "insider-cover" | "insider-content" | "insider-closing"
+  | "hook-cover" | "hook-content" | "hook-closing";
 
 /** Cover choices stay within Brand Editorial; they are not separate templates. */
 export type EditorialCoverVariant = "signature" | "poster" | "editorial" | "highlight" | "split";
@@ -75,7 +77,7 @@ export type Template = {
   style: CardComposition;
   pageBlueprint: CardComposition[];
   /** Legacy templates omit this. New families declare semantic page intent here. */
-  family?: "legacy" | "editorial" | "full-type" | "social-post";
+  family?: "legacy" | "editorial" | "full-type" | "social-post" | "insider" | "hook";
   coverVariants?: EditorialCoverVariant[];
   pagePlan?: PagePlan[];
   demo: Pick<Content, "title" | "subtitle" | "body" | "cta" | "imageData">;
@@ -161,6 +163,28 @@ export const templates: Template[] = [
       { role: "closing", composition: "social-closing", slots: ["identity", "title", "body", "cta"] },
     ],
     demo: demo("Eu perdia um dia inteiro fazendo um carrossel.", "Hoje a IA faz em minutos — veja como.", "Comece pelo essencial, sem pular etapas. Pratique todo dia e ajuste o rumo toda semana.", "Salvar este post", photo.portrait),
+  },
+  {
+    id: "insider", name: "Insider", category: "Insider", formats: ["square", "portrait", "vertical", "story"], pages: "multiple", family: "insider",
+    description: "Retrato de alto contraste, leitura escura e fechamento para salvar.", fields: ["Título", "Subtítulo", "Texto", "CTA", "Imagem"], style: "insider-cover",
+    pageBlueprint: ["insider-cover", "insider-content", "insider-closing"],
+    pagePlan: [
+      { role: "cover", composition: "insider-cover", slots: ["kicker", "title", "cta", "image"] },
+      { role: "content", composition: "insider-content", slots: ["kicker", "title", "body"] },
+      { role: "closing", composition: "insider-closing", slots: ["kicker", "title", "body", "cta"] },
+    ],
+    demo: demo("O método para publicar com mais consistência", "Estratégia prática", "Comece pelo essencial, sem pular etapas. A consistência pequena vence a intensidade que não dura.", "Salvar este post", photo.portrait),
+  },
+  {
+    id: "hook", name: "Hook", category: "Impacto", formats: ["square", "portrait", "vertical", "story"], pages: "multiple", family: "hook",
+    description: "Imagem de impacto, explicação curta e CTA em ritmo de notícia.", fields: ["Título", "Subtítulo", "Texto", "CTA", "Imagem"], style: "hook-cover",
+    pageBlueprint: ["hook-cover", "hook-content", "hook-closing"],
+    pagePlan: [
+      { role: "cover", composition: "hook-cover", slots: ["kicker", "title", "image"] },
+      { role: "content", composition: "hook-content", slots: ["kicker", "title", "body"] },
+      { role: "closing", composition: "hook-closing", slots: ["kicker", "title", "body", "cta"] },
+    ],
+    demo: demo("A mudança que afeta a rotina de toda a sua audiência", "Urgente", "Comece pelo essencial, sem pular etapas. Pratique todo dia e reveja o que travou na semana.", "Salvar este post", photo.architecture),
   },
   { id: "pergunta-direta", name: "Pergunta direta", category: "Conversão", formats: ["square", "portrait", "vertical", "story"], pages: "both", description: "Uma pergunta em primeiro plano, com CTA de leitura imediata.", fields: ["Título", "Subtítulo", "CTA"], style: "prompt", pageBlueprint: ["prompt"], demo: demo("Sua marca está sendo entendida em poucos segundos?", "Ponto de partida", "", "Ver a resposta") },
   { id: "legenda-fotografica", name: "Legenda fotográfica", category: "Imagem", formats: ["square", "portrait", "vertical", "story"], pages: "both", description: "Imagem integral, identificação compacta e legenda de alto contraste.", fields: ["Imagem", "Título", "Texto", "CTA"], style: "photo-caption", pageBlueprint: ["photo-caption"], demo: demo("O detalhe muda a percepção.", "Direção de arte", "Fotografia com presença, texto curto e uma hierarquia que respeita a imagem.", "Conhecer", photo.portrait) },

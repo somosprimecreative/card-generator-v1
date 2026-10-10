@@ -15,10 +15,12 @@ function initials(name?: string) {
   return name?.split(" ").map((word) => word[0]).join("").slice(0, 2).toUpperCase() || "P";
 }
 
-const usesImage = (composition: CardComposition) => composition === "photo-caption" || composition === "editorial-cover" || composition === "editorial-image";
+const usesImage = (composition: CardComposition) => composition === "photo-caption" || composition === "editorial-cover" || composition === "editorial-image" || composition === "insider-cover" || composition === "hook-cover";
 const isEditorial = (composition: CardComposition) => composition.startsWith("editorial-");
 const isFull = (composition: CardComposition) => composition.startsWith("full-");
 const isSocial = (composition: CardComposition) => composition.startsWith("social-");
+const isInsider = (composition: CardComposition) => composition.startsWith("insider-");
+const isHook = (composition: CardComposition) => composition.startsWith("hook-");
 
 function editorialHandle(identity: string) {
   const normalized = identity.trim();
@@ -145,6 +147,17 @@ function SocialContent({ content, identity, composition }: { content: Content; i
   </div>;
 }
 
+function AlertContent({ content, composition, family }: { content: Content; composition: CardComposition; family: "insider" | "hook" }) {
+  const slots = content.slots ?? {}; const title = slots.title || content.title; const body = slots.body || content.body;
+  const cover = composition.endsWith("cover"); const closing = composition.endsWith("closing");
+  return <div className={`${styles.content} ${family === "insider" ? styles.insiderContent : styles.hookContent}`}>
+    <span className={styles.alertPill}>{slots.kicker || (cover ? content.subtitle || "Urgente" : closing ? "Agora" : "Na prática")}</span>
+    <h3>{title}</h3>{!cover && body && <p className={styles.body}>{body}</p>}
+    {cover && family === "insider" && <span className={styles.alertCoverCta}>{slots.cta || content.cta || "Arrasta para o lado"} <b aria-hidden="true">›</b></span>}
+    {closing && <span className={styles.alertSave}>▮ {slots.cta || content.cta || "Salvar este post"}</span>}
+  </div>;
+}
+
 export function CardRenderer({ creation, brand, page = 0, compact = false, exportMode = false }: { creation: Creation; brand?: BrandProfile; page?: number; compact?: boolean; exportMode?: boolean }) {
   const template = templates.find((item) => item.id === creation.templateId) ?? templates[0];
   const content = creation.pages[page] ?? creation.content;
@@ -162,7 +175,7 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
   const tag = content.slots?.kicker || content.subtitle || template.category;
   const image = content.slots?.image;
   const editorial = isEditorial(composition);
-  const full = isFull(composition); const social = isSocial(composition);
+  const full = isFull(composition); const social = isSocial(composition); const insider = isInsider(composition); const hook = isHook(composition); const reference = full || social || insider || hook;
   const identity = content.slots?.identity || brand?.name || "Sem marca";
   const coverVariantClass = composition === "editorial-cover" ? ({
     signature: styles.editorialCoverSignature,
@@ -175,7 +188,7 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
   return <article
     data-pixel-card="true"
     data-template={composition}
-    data-family={editorial ? "editorial" : full ? "full-type" : social ? "social-post" : "legacy"}
+    data-family={editorial ? "editorial" : full ? "full-type" : social ? "social-post" : insider ? "insider" : hook ? "hook" : "legacy"}
     data-page-role={content.pageRole || (page === 0 ? "cover" : page === creation.pages.length - 1 ? "closing" : "content")}
     data-density={density}
     className={`${styles.card} ${styles[composition]} ${coverVariantClass} ${compact ? styles.compact : ""} ${exportMode ? styles.exportCard : ""}`}
@@ -187,13 +200,13 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
         : <div className={styles.photoFallback}><b>{initials(brand?.name)}</b><span>{image?.name || content.imageName || "Adicione uma imagem"}</span></div>}
     </div>}
 
-    <header className={`${styles.header} ${editorial ? styles.editorialChrome : ""} ${full || social ? styles.referenceHeader : ""}`}>
+    <header className={`${styles.header} ${editorial ? styles.editorialChrome : ""} ${reference ? styles.referenceHeader : ""}`}>
       {editorial
         ? <><span className={styles.editorialHandle}>{editorialHandle(identity)}</span><span className={styles.editorialBadge}>{composition === "editorial-cover" ? template.category : tag}</span></>
         : <><span className={styles.identity}>{identity}</span><span className={styles.counter}>{pageLabel}<i />{countLabel}</span></>}
     </header>
 
-    {editorial ? <EditorialContent composition={composition} content={content} identity={identity}/> : full ? <FullTypeContent composition={composition} content={content}/> : social ? <SocialContent composition={composition} content={content} identity={identity}/> : <div className={styles.content}>
+    {editorial ? <EditorialContent composition={composition} content={content} identity={identity}/> : full ? <FullTypeContent composition={composition} content={content}/> : social ? <SocialContent composition={composition} content={content} identity={identity}/> : insider ? <AlertContent composition={composition} content={content} family="insider"/> : hook ? <AlertContent composition={composition} content={content} family="hook"/> : <div className={styles.content}>
       {(composition === "photo-caption" || composition === "dark-copy") && <span className={styles.tag}>{tag}</span>}
       {composition === "minimal-cover" && <div className={styles.profile}><b>{initials(brand?.name)}</b><span>{tag}</span></div>}
       {composition === "minimal-copy" && <span className={styles.sectionLabel}>{tag}</span>}
@@ -203,10 +216,11 @@ export function CardRenderer({ creation, brand, page = 0, compact = false, expor
       {!compact && content.body && <p className={styles.body}>{content.body}</p>}
     </div>}
 
-    <footer className={`${styles.footer} ${editorial ? `${styles.editorialChrome} ${styles.editorialFooter}` : ""} ${full || social ? styles.referenceFooter : ""}`}>
+    <footer className={`${styles.footer} ${editorial ? `${styles.editorialChrome} ${styles.editorialFooter}` : ""} ${reference ? styles.referenceFooter : ""}`}>
       {editorial && <span className={styles.editorialPageCount}>{pageLabel}/{countLabel}</span>}
-      <span className={styles.dots}>{[0, 1, 2].map((dot) => <i key={dot} className={dot === (editorial || full || social ? page % 3 : 0) ? styles.dotActive : ""}/>)}</span>
-      <span className={styles.action}>{editorial ? (page === creation.pages.length - 1 ? "Salvar" : "Arrasta") : full || social ? "Arrasta" : content.slots?.cta || content.cta || "Saiba mais"}<b aria-hidden="true">{editorial || full || social ? "→" : "↗"}</b></span>
+      {reference && <span className={styles.referencePageCount}>{pageLabel}/{countLabel}</span>}
+      <span className={styles.dots}>{[0, 1, 2].map((dot) => <i key={dot} className={dot === (editorial || reference ? page % 3 : 0) ? styles.dotActive : ""}/>)}</span>
+      <span className={`${styles.action} ${(insider || hook) && page === creation.pages.length - 1 ? styles.referenceClosingAction : ""}`}>{editorial ? (page === creation.pages.length - 1 ? "Salvar" : "Arrasta") : reference ? "Arrasta" : content.slots?.cta || content.cta || "Saiba mais"}<b aria-hidden="true">{editorial || reference ? "→" : "↗"}</b></span>
     </footer>
   </article>;
 }
